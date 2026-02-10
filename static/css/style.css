@@ -1,0 +1,157 @@
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f6f0fb;
+}
+
+:root {
+    --ungu: #b39ddb;
+    --ungu-tua: #7e57c2;
+    --ungu-muda: #ede7f6;
+}
+
+
+.container {
+    width: 90%;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    margin-top: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+
+header {
+    text-align: center;
+    border-bottom: 3px solid var(--ungu);
+    margin-bottom: 15px;
+}
+
+header h1 {
+    margin: 0;
+    color: var(--ungu-tua);
+}
+
+
+input, select {
+    padding: 10px;
+    margin-top: 8px;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button {
+    padding: 10px;
+    margin-top: 10px;
+    width: 100%;
+    background: var(--ungu);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--ungu-tua);
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+th {
+    background: var(--ungu-muda);
+}
+
+
+.total-box {
+    text-align: right;
+    font-size: 20px;
+    margin-top: 10px;
+    font-weight: bold;
+    color: var(--ungu-tua);
+}
+
+
+.notif {
+    background: var(--ungu-tua);
+    color: white;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+.notif-item, .warning {
+    color: var(--ungu-tua);
+    font-weight: bold;
+}
+
+.card {
+    background: var(--ungu-muda);
+    padding: 15px;
+    margin-top: 15px;
+    border-left: 5px solid var(--ungu);
+    border-radius: 6px;
+}
+
+.login-wrapper {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-card {
+    width: 320px;
+    background: white;
+    padding: 25px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    text-align: center;
+    border-top: 6px solid var(--ungu);
+    border-radius: 10px;
+}
+
+.subtitle {
+    font-size: 14px;
+    margin-bottom: 20px;
+    color: #666;
+}
+
+.fade-in {
+    animation: fadeIn 0.6s ease-in;
+}
+
+.slide-down {
+    animation: slideDown 0.4s ease-out;
+}
+
+.slide-left {
+    animation: slideLeft 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-15px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideLeft {
+    from { transform: translateX(15px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

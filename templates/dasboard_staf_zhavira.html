@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard Staf - Minimarket</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+  <div class="container fade-in">
+
+    <header>
+      <h1>Dashboard Staf</h1>
+      <button><a href="/logout" style="float:right">Logout</a></button>
+    </header>
+
+    {% for n in notif %}
+    <div class="notif-item slide-left">
+      Stok {{ n.nama_barang_zhavira }} HABIS
+    </div>
+    {% endfor %}
+
+    <table>
+      <tr>
+        <th>Kode</th>
+        <th>Nama</th>
+        <th>Stok</th>
+        <th>Harga</th>
+      </tr>
+      {% for b in barang %}
+      <tr>
+        <td>{{ b.kode_barang_zhavira }}</td>
+        <td>{{ b.nama_barang_zhavira }}</td>
+        <td>{{ b.stok_zhavira }}</td>
+        <td>{{ b.harga_zhavira }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+  </div>
+</body>
+
+</html>

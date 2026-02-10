@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Login - Minimarket Zhavira</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="login-wrapper fade-in">
+    <div class="login-card slide-down">
+      <h2>LOGIN</h2>
+      <p class="subtitle">ZHAVIRA MART</p>
+      <form method="post" action="{{ url_for('login_pengguna') }}">
+        <label>Username</label>
+        <input type="text" name="username_zhavira" required>
+        <label>Password</label>
+        <input type="password" name="password_zhavira" required>
+        <button type="submit">MASUK</button>
+      </form>
+      {% if error %}
+        <div class="notif">{{ error }}</div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
