@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Laporan Keuangan</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dashboard-layout">
+
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-profile">
+                <h2>{{ session.nama_perusahaan_zhavira }}</h2>
+                <p>{{ session.nama_market_zhavira }}</p>
+                <p>{{ session.role_zhavira }}</p>
+                <p>{{ session.nama_user_zhavira }}</p>
+            </div>
+
+            <div class="sidebar-menu">
+                <a href="{{ url_for('dashboard_manager') }}">Dashboard</a>
+                <a href="{{ url_for('laporan_keuangan') }}" class="active">Laporan</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container fade-in">
+
+            <h1>Laporan Keuangan</h1>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <a href="{{ url_for('cetak_laporan_keuangan', periode=periode) }}" target="_blank">
+                    <button type="button">CetakPDF</button>
+                </a>
+            </div>
+
+            <form method="get" style="margin-bottom: 20px;">
+                <label for="periode">Pilih Periode:</label>
+                <select name="periode" id="periode" onchange="this.form.submit()"
+                    style="padding: 5px; border-radius: 4px;">
+                    <option value="jam" {% if periode=='jam' %}selected{% endif %}>Per Jam</option>
+                    <option value="sesi" {% if periode=='sesi' %}selected{% endif %}>Per Sesi</option>
+                    <option value="hari" {% if periode=='hari' %}selected{% endif %}>Per Hari</option>
+                    <option value="minggu" {% if periode=='minggu' %}selected{% endif %}>Per Minggu</option>
+                    <option value="bulan" {% if periode=='bulan' %}selected{% endif %}>Per Bulan</option>
+                    <option value="tahun" {% if periode=='tahun' %}selected{% endif %}>Per Tahun</option>
+                </select>
+            </form>
+
+            <table class="laporan-table">
+                <thead>
+                    <tr>
+                        <th>Periode</th>
+                        <th>Jumlah Transaksi</th>
+                        <th>Total</th>
+                        <th>Tunai</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in data %}
+                    <tr>
+                        <td>{{ d.perperiode }}</td>
+                        <td>{{ d.jumlah_transaksi }}</td>
+                        <td>Rp {{ "{:,.0f}".format(d.total_penjualan or 0) }}</td>
+                        <td class="metode-tunai">Rp {{ "{:,.0f}".format(d.tunai or 0) }}</td>
+                    </tr>
+                    {% endfor %}
+            </table>
+
+            <div style="text-align:right; margin-top:20px; font-size: 1.2em;">
+                <b>Total Omzet: Rp {{ "{:,.0f}".format(total_omzet) }}</b>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

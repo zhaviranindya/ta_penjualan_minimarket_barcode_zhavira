@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Data Perusahaan</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dashboard-layout">
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-profile">
+                <h2>{{ session.nama_perusahaan_zhavira }}</h2>
+                <p>{{ session.nama_market_zhavira }}</p>
+                <p>{{ session.role_zhavira }}</p>
+                <p>{{ session.nama_user_zhavira }}</p>
+            </div>
+
+            <div class="sidebar-menu">
+                <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+                <a href="{{ url_for('data_user') }}">Data User</a>
+                <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container fade-in">
+
+            <h1>Data Perusahaan</h1>
+
+            <div style="margin-bottom: 20px;">
+                <button>
+                    <a href="{{ url_for('tambahperusahaan') }}">➕ Tambah Data</a>
+                </button>
+            </div>
+
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Nama Perusahaan</th>
+                    <th>Nama Market</th>
+                    <th>Alamat</th>
+                    <th>No Telp</th>
+                    <th>Aksi</th>
+                </tr>
+                {% for p in perusahaan %}
+                <tr>
+                    <td>{{ p.id_perusahaan_zhavira }}</td>
+                    <td>{{ p.nama_perusahaan_zhavira }}</td>
+                    <td>{{ p.nama_market_zhavira }}</td>
+                    <td>{{ p.alamat_zhavira }}</td>
+                    <td>{{ p.no_telp_zhavira }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_perusahaan', id_perusahaan_zhavira=p.id_perusahaan_zhavira) }}"
+                            class="btn-edit">Edit</a>
+                        <a href="{{ url_for('hapus_perusahaan', id_perusahaan_zhavira=p.id_perusahaan_zhavira) }}"
+                            onclick="return confirm('Hapus?')" class="btn-delete">Hapus</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Edit User</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dashboard-layout">
+
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-profile">
+                <h2>{{ session.nama_perusahaan_zhavira }}</h2>
+                <p>{{ session.nama_market_zhavira }}</p>
+                <p>{{ session.role_zhavira }}</p>
+                <p>{{ session.nama_user_zhavira }}</p>
+            </div>
+            <div class="sidebar-menu">
+                <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+                <a href="{{ url_for('data_user') }}">Data User</a>
+                <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container fade-in">
+            <h1>Edit User</h1>
+
+            <form method="post" action="{{ url_for('edit_user', id_user_zhavira=user2.id_user_zhavira) }}">
+                <div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:15px;">
+                    <div style="flex:1;">
+                        <label>ID User</label>
+                        <input type="text" name="id_user_zhavira" value="{{ user2.id_user_zhavira }}" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>ID Perusahaan</label>
+                        <input type="text" name="id_perusahaan_zhavira" value="{{ user2.id_perusahaan_zhavira }}"
+                            required>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                    <div style="flex:1;">
+                        <label>Username</label>
+                        <input type="text" name="username_zhavira" value="{{ user2.username_zhavira }}" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Password</label>
+                        <input type="password" name="password_zhavira" value="{{ user2.password_zhavira }}" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Nama User</label>
+                        <input type="text" name="nama_user_zhavira" value="{{ user2.nama_user_zhavira }}" required>
+                    </div>
+                </div>
+
+                <label>Role</label>
+                <select name="role_zhavira" required>
+                    <option value="admin" {% if user2.role_zhavira=='admin' %}selected{% endif %}>Admin</option>
+                    <option value="manager" {% if user2.role_zhavira=='manager' %}selected{% endif %}>Manager</option>
+                    <option value="staf" {% if user2.role_zhavira=='staf' %}selected{% endif %}>Staf</option>
+                    <option value="kasir" {% if user2.role_zhavira=='kasir' %}selected{% endif %}>Kasir</option>
+                </select>
+
+                <div style="margin-top:20px;">
+                    <button type="submit">Update User</button>
+                    <a href="{{ url_for('data_user') }}">
+                        <button type="button">Batal</button>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+
+</html>

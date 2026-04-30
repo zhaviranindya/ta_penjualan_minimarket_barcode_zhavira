@@ -1,40 +1,46 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
-    <title>Dashboard Staf - Minimarket</title>
+    <title>Dashboard Manager</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
-<body>
-    <div class="container fade-in">
-        <header>
+<body class="dashboard-layout">
+
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-profile">
+                <h2>{{ session.nama_perusahaan_zhavira }}</h2>
+                <p>{{ session.nama_market_zhavira }}</p>
+                <p>{{ session.role_zhavira }}</p>
+                <p>{{ session.nama_user_zhavira }}</p>
+            </div>
+
+            <div class="sidebar-menu">
+                <a href="{{ url_for('dashboard_manager')}}">Dashboard</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container fade-in">
+
             <h1>Dashboard Manager</h1>
-            <button><a href="/logout" style="float:right">Logout</a></button>
-        </header>
-        
-        {% for n in notif %}
-        <div class="notif-item">{{ n.nama_barang_zhavira }} stok habis</div>
-        {% endfor %}
 
-        <table>
-            <tr>
-                <th>Tanggal</th>
-                <th>Kasir</th>
-                <th>Total</th>
-                <th>Metode</th>
-            </tr>
+            <div class="summary-wrapper">
 
-            {% for t in transaksi %}
-            <tr>
-                <td>{{ t.tanggal_zhavira }}</td>
-                <td>{{ t.nama_user_zhavira }}</td>
-                <td>Rp {{ t.total }}</td>
-                <td>{{ t.metode }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+                <div class="summary-card">
+                    <h3>TOTAL TRANSAKSI</h3>
+                    <h2>{{ total_transaksi }}</h2>
+                </div>
+
+            </div>
+
+        </div>
     </div>
 
 </body>

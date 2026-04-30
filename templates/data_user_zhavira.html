@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Data User</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dashboard-layout">
+
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-profile">
+                <h2>{{ session.nama_perusahaan_zhavira }}</h2>
+                <p>{{ session.nama_market_zhavira }}</p>
+                <p>{{ session.role_zhavira }}</p>
+                <p>{{ session.nama_user_zhavira }}</p>
+            </div>
+
+            <div class="sidebar-menu">
+                <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+                <a href="{{ url_for('data_user') }}">Data User</a>
+                <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container fade-in">
+
+            <h1>Data User</h1>
+
+            <div style="margin-bottom: 20px;">
+                <button>
+                    <a href="{{ url_for('tambahuser') }}">➕ Tambah Data</a>
+                </button>
+            </div>
+
+            <table>
+                    <tr>
+                        <th>ID User</th>
+                        <th>ID Perusahaan</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Nama</th>
+                        <th>Role</th>
+                        <th>Aksi</th>
+                    </tr>
+                    {% for u in user1 %}
+                    <tr>
+                        <td>{{ u.id_user_zhavira }}</td>
+                        <td>{{ u.id_perusahaan_zhavira }}</td>
+                        <td>{{ u.username_zhavira }}</td>
+                        <td>{{ u.password_zhavira }}</td>
+                        <td>{{ u.nama_user_zhavira }}</td>
+                        <td>{{ u.role_zhavira }}</td>
+                        <td>
+                            <a href="{{ url_for('edit_user', id_user_zhavira=u.id_user_zhavira) }}"
+                                class="btn-edit">Edit</a>
+                            <a href="{{ url_for('hapus_user', id_user_zhavira=u.id_user_zhavira) }}"
+                                onclick="return confirm('Hapus?')" class="btn-delete">Hapus</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+            </table>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Edit Barang</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dashboard-layout">
+
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-profile">
+                <h2>{{ session.nama_perusahaan_zhavira }}</h2>
+                <p>{{ session.nama_market_zhavira }}</p>
+                <p>{{ session.role_zhavira }}</p>
+                <p>{{ session.nama_user_zhavira }}</p>
+            </div>
+            <div class="sidebar-menu">
+                <a href="{{ url_for('dashboard_staf') }}">Dashboard</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container fade-in">
+            <h1>Edit Barang</h1>
+
+            <form method="post" action="{{ url_for('edit_barang', kode_barang_zhavira=barang.kode_barang_zhavira) }}">
+                <div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:15px;">
+                    <div style="flex:1;">
+                        <label>Kode Barang</label>
+                        <input type="text" name="kode_barang_zhavira" value="{{ barang.kode_barang_zhavira }}" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Nama Barang</label>
+                        <input type="text" name="nama_barang_zhavira" value="{{ barang.nama_barang_zhavira }}" required>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                    <div style="flex:1;">
+                        <label>Harga</label>
+                        <input type="number" name="harga_zhavira" value="{{ barang.harga_zhavira }}" min="0" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Stok</label>
+                        <input type="number" name="stok_zhavira" value="{{ barang.stok_zhavira }}" min="0" required>
+                    </div>
+                </div>
+
+                <div style="margin-top:20px;">
+                    <button type="submit">Update Barang</button>
+                    <a href="{{ url_for('data_barang') }}">
+                        <button type="button">Batal</button>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+
+</html>

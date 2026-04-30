@@ -3,12 +3,11 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Dashboard Staf</title>
+  <title>Dashboard Admin</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body class="dashboard-layout">
-
   <div class="sidebar">
 
     <div>
@@ -20,8 +19,9 @@
       </div>
 
       <div class="sidebar-menu">
-        <a href="{{ url_for('dashboard_staf') }}">Dashboard</a>
-        <a href="{{ url_for('data_barang') }}">Data Barang</a>
+        <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+        <a href="{{ url_for('data_user') }}">Data User</a>
+        <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
         <a href="{{ url_for('logout') }}">Logout</a>
       </div>
     </div>
@@ -31,21 +31,19 @@
   <div class="main-content">
     <div class="container fade-in">
 
-      <h1>Dashboard Staf</h1>
+      <h1>Dashboard Admin</h1>
 
-      {% if notif %}
-      {% for n in notif %}
-      <div class="notif-item">
-        🚨 Stok {{ n.nama_barang_zhavira }} HABIS
+      <div class="summary-wrapper">
+
+        <div class="summary-card">
+          <h3>TOTAL USER</h3>
+          <h2>{{ total_user }}</h2>
+        </div>
+
       </div>
-      {% endfor %}
-      {% else %}
-      <p>Tidak ada stok habis</p>
-      {% endif %}
 
     </div>
   </div>
-
 </body>
 
 </html>

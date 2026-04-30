@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Tambah User</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dashboard-layout">
+
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-profile">
+                <h2>{{ session.nama_perusahaan_zhavira }}</h2>
+                <p>{{ session.nama_market_zhavira }}</p>
+                <p>{{ session.role_zhavira }}</p>
+                <p>{{ session.nama_user_zhavira }}</p>
+            </div>
+            <div class="sidebar-menu">
+                <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+                <a href="{{ url_for('data_user') }}">Data User</a>
+                <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container fade-in">
+            <h1>Tambah User</h1>
+
+            <form method="post" action="{{ url_for('tambahuser') }}">
+                <div class="form-row" style="display:flex; gap:20px; flex-wrap:wrap;">
+                    <div class="col" style="flex:1;">
+                        <label>ID User</label>
+                        <input type="text" name="id_user_zhavira" required>
+                    </div>
+                    <div class="col" style="flex:1;">
+                        <label>ID Perusahaan</label>
+                        <input type="text" name="id_perusahaan_zhavira" required>
+                    </div>
+                </div>
+
+                <label>Username</label>
+                <input type="text" name="username_zhavira" required>
+
+                <label>Password</label>
+                <input type="text" name="password_zhavira" required>
+
+                <label>Nama User</label>
+                <input type="text" name="nama_user_zhavira" required>
+
+                <label>Role</label>
+                <select name="role_zhavira" required>
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="staf">Staf</option>
+                    <option value="kasir">Kasir</option>
+                </select>
+
+                <div style="margin-top:15px;">
+                    <button type="submit">Simpan</button>
+                    <a href="{{ url_for('data_user') }}">
+                        <button type="button">Batal</button>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+
+</html>
