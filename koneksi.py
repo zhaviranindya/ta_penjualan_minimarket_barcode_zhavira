@@ -883,7 +883,7 @@ def cetak_struk(id_transaksi):
     cursor.close()
     conn.close()
 
-    tinggi_dasar = 100
+    tinggi_dasar = 200
     tinggi_item = len(detail) * 8
     tinggi_kertas = tinggi_dasar + tinggi_item
 
@@ -892,7 +892,7 @@ def cetak_struk(id_transaksi):
     pdf.add_page()
 
     pdf.set_left_margin(4)
-    pdf.set_right_margin(4)
+    pdf.set_right_margin(4) 
 
     pdf.set_font("Courier", size=7)
 
