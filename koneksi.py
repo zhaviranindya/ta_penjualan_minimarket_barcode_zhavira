@@ -221,13 +221,13 @@ def hapus_user(id_user_zhavira):
     if session.get('role_zhavira') != 'admin':
         return redirect('/')
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM tb_user_zhavira WHERE id_user_zhavira = %s", (id_user_zhavira,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return redirect(url_for('data_user'))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM tb_user_zhavira WHERE id_user_zhavira = %s", (id_user_zhavira,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return redirect(url_for('data_user'))
 
 @app.route('/perusahaan')
 def data_perusahaan():
@@ -333,13 +333,13 @@ def hapus_perusahaan(id_perusahaan_zhavira):
     if session.get('role_zhavira') != 'admin':
         return redirect('/')
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM tb_perusahaan_zhavira WHERE id_perusahaan_zhavira = %s", (id_perusahaan_zhavira,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return redirect(url_for('data_perusahaan'))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM tb_perusahaan_zhavira WHERE id_perusahaan_zhavira = %s", (id_perusahaan_zhavira,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return redirect(url_for('data_perusahaan'))
 
 
 @app.route('/barang')
@@ -444,13 +444,13 @@ def hapus_barang(kode_barang_zhavira):
     if session.get('role_zhavira') != 'staf':
         return redirect('/')
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM tb_barang_zhavira WHERE kode_barang_zhavira = %s", (kode_barang_zhavira,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return redirect(url_for('data_barang'))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM tb_barang_zhavira WHERE kode_barang_zhavira = %s", (kode_barang_zhavira,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return redirect(url_for('data_barang'))
 
 @app.route('/keuangan')
 def laporan_keuangan():
@@ -724,9 +724,9 @@ def transaksi_kasir():
 
         if data:
             preview_zhavira = {
-                'kode_zhavira': data['kode_barang_zhavira'],
-                'nama_zhavira': data['nama_barang_zhavira'],
-                'harga_zhavira': data['harga_zhavira']
+                'kode': data['kode_barang_zhavira'],
+                'nama': data['nama_barang_zhavira'],
+                'harga': data['harga_zhavira']
             }
         else:
             error = "Barang tidak ditemukan!"
@@ -820,6 +820,7 @@ def transaksi_kasir():
                 """, (item['jumlah_zhavira'], kode_barang_zhavira))
 
             conn.commit()
+            session.pop('keranjang_zhavira', None)
             session['keranjang_zhavira'] = {}
             session.modified = True
             return redirect(url_for('cetak_struk', id_transaksi=id_transaksi))
@@ -882,7 +883,7 @@ def cetak_struk(id_transaksi):
     cursor.close()
     conn.close()
 
-    tinggi_dasar = 65
+    tinggi_dasar = 100
     tinggi_item = len(detail) * 8
     tinggi_kertas = tinggi_dasar + tinggi_item
 

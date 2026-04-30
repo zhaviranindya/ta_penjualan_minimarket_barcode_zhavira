@@ -7,97 +7,115 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
-<body>
+<body class="dashboard-layout">
 
-    <div class="container fade-in">
-        <h1>Transaksi Kasir</h1>
-        <button><a href="{{ url_for('logout') }}">Logout</a></button>
-
-        <div class="kasir-container">
-
-            <div class="kasir-left">
-                <form method="post">
-                    <label>Cari / Scan Barang</label><br>
-                    <input type="text" name="kode_barang_input" list="list-barang" autocomplete="off" required><br><br>
-
-                    <datalist id="list-barang">
-                        {% for barang in daftar_barang_zhavira %}
-                        <option value="{{ barang.kode_barang_zhavira }}">{{ barang.nama_barang_zhavira }}</option>
-                        {% endfor %}
-                    </datalist>
-
-                    <label>Jumlah</label><br>
-                    <input type="number" name="jumlah_input" min="1" value="1" required><br><br>
-
-                    <button type="submit" name="cek">Cek Barang</button>
-                </form>
-
-                <hr>
-
-                {% if preview_zhavira %}
-                <form method="post">
-                    <h3>Preview Barang</h3>
-                    <p>Nama: {{ preview_zhavira.nama }}</p>
-                    <p>Harga: Rp {{ "{:,.0f}".format(preview_zhavira.harga).replace(",", ".") }}</p>
-                    <p>Jumlah: {{ jumlah_zhavira }}</p>
-
-                    <input type="hidden" name="kode_barang_zhavira" value="{{ preview_zhavira.kode }}">
-                    <input type="hidden" name="nama_barang_zhavira" value="{{ preview_zhavira.nama }}">
-                    <input type="hidden" name="harga_zhavira" value="{{ preview_zhavira.harga }}">
-                    <input type="hidden" name="jumlah_zhavira" value="{{ jumlah_zhavira }}">
-
-                    <button type="submit" name="tambah">Tambah ke Keranjang</button>
-                </form>
-                {% endif %}
-
-                <table>
-                    <tr>
-                        <th>Nama</th>
-                        <th>Harga</th>
-                        <th>Qty</th>
-                        <th>Subtotal</th>
-                        <th>Aksi</th>
-                    </tr>
-                    {% for kode, item in keranjang.items() %}
-                    <tr>
-                        <td>{{ item.nama_barang_zhavira }}</td>
-                        <td>Rp {{ "{:,.0f}".format(item.harga_zhavira).replace(",", ".") }}</td>
-                        <td>{{ item.jumlah_zhavira }}</td>
-                        <td>Rp {{ "{:,.0f}".format(item.subtotal_zhavira).replace(",", ".") }}</td>
-                        <td>
-                            <a href="{{ url_for('hapus_item', kode_barang_zhavira=kode) }}"
-                                onclick="return confirm('Hapus item ini?')" class="btn-delete">
-                                Batal
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </table>
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-profile">
+                <h2>{{ session.nama_perusahaan_zhavira }}</h2>
+                <p>{{ session.nama_market_zhavira }}</p>
+                <p>{{ session.role_zhavira }}</p>
+                <p>{{ session.nama_user_zhavira }}</p>
             </div>
 
-            <div class="kasir-right">
-                <form method="post">
-                    <h3>PEMBAYARAN</h3>
-                    {% if error %}
-                    <p style="color:red">{{ error }}</p>
+            <div class="sidebar-menu">
+                <a href="{{ url_for('dashboard_manager') }}">Dashboard</a>
+                <a href="{{ url_for('transaksi_kasir') }}" class="active">Kasir</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container fade-in">
+            <h1>Transaksi Kasir</h1>
+            <div class="kasir-container">
+
+                <div class="kasir-left">
+                    <form method="post">
+                        <label>Cari / Scan Barang</label><br>
+                        <input type="text" name="kode_barang_input" list="list-barang" autocomplete="off"
+                            required><br><br>
+
+                        <datalist id="list-barang">
+                            {% for barang in daftar_barang_zhavira %}
+                            <option value="{{ barang.kode_barang_zhavira }}">{{ barang.nama_barang_zhavira }}</option>
+                            {% endfor %}
+                        </datalist>
+
+                        <label>Jumlah</label><br>
+                        <input type="number" name="jumlah_input" min="1" required><br><br>
+
+                        <button type="submit" name="cek">Cek Barang</button>
+                    </form>
+
+                    <hr>
+
+                    {% if preview_zhavira %}
+                    <form method="post">
+                        <h3>Preview Barang</h3>
+                        <p>Nama: {{ preview_zhavira.nama }}</p>
+                        <p>Harga: Rp {{ "{:,.0f}".format(preview_zhavira.harga).replace(",", ".") }}</p>
+                        <p>Jumlah: {{ jumlah_zhavira }}</p>
+
+                        <input type="hidden" name="kode_barang_zhavira" value="{{ preview_zhavira.kode }}">
+                        <input type="hidden" name="nama_barang_zhavira" value="{{ preview_zhavira.nama }}">
+                        <input type="hidden" name="harga_zhavira" value="{{ preview_zhavira.harga }}">
+                        <input type="hidden" name="jumlah_zhavira" value="{{ jumlah_zhavira }}">
+
+                        <button type="submit" name="tambah">Tambah ke Keranjang</button>
+                    </form>
                     {% endif %}
 
-                    <p>Total:</p>
-                    <h2>Rp {{ "{:,.0f}".format(total_belanja_zhavira).replace(",", ".") }}</h2>
+                    <table>
+                        <tr>
+                            <th>Nama</th>
+                            <th>Harga</th>
+                            <th>Qty</th>
+                            <th>Subtotal</th>
+                            <th>Aksi</th>
+                        </tr>
+                        {% for kode, item in keranjang.items() %}
+                        <tr>
+                            <td>{{ item.nama_barang_zhavira }}</td>
+                            <td>Rp {{ "{:,.0f}".format(item.harga_zhavira).replace(",", ".") }}</td>
+                            <td>{{ item.jumlah_zhavira }}</td>
+                            <td>Rp {{ "{:,.0f}".format(item.subtotal_zhavira).replace(",", ".") }}</td>
+                            <td>
+                                <a href="{{ url_for('hapus_item', kode_barang_zhavira=kode) }}"
+                                    onclick="return confirm('Hapus item ini?')" class="btn-delete">
+                                    Batal
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
 
-                    <label>Metode</label>
-                    <select name="metode_bayar_zhavira">
-                        <option value="tunai">Tunai</option>
-                    </select>
+                <div class="kasir-right">
+                    <form method="post">
+                        <h3>PEMBAYARAN</h3>
+                        {% if error %}
+                        <p style="color:red">{{ error }}</p>
+                        {% endif %}
 
-                    <label>Uang Dibayar</label>
-                    <input type="text" id="uang_bayar_zhavira" placeholder="Masukkan uang" required>
-                    <input type="hidden" name="uang_bayar_zhavira" id="uang_asli_zhavira">
+                        <p>Total:</p>
+                        <h2>Rp {{ "{:,.0f}".format(total_belanja_zhavira).replace(",", ".") }}</h2>
 
-                    <button type="submit" name="cetak">CETAK STRUK</button>
-                </form>
+                        <label>Metode</label>
+                        <select name="metode_bayar_zhavira">
+                            <option value="tunai">Tunai</option>
+                        </select>
+
+                        <label>Uang Dibayar</label>
+                        <input type="text" id="uang_bayar_zhavira" placeholder="Masukkan uang" required>
+                        <input type="hidden" name="uang_bayar_zhavira" id="uang_asli_zhavira">
+
+                        <button type="submit" name="cetak">CETAK STRUK</button>
+                    </form>
+                </div>
+
             </div>
-
         </div>
     </div>
 
