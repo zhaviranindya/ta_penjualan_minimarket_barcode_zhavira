@@ -737,8 +737,16 @@ def transaksi_kasir():
         harga_zhavira = int(request.form['harga_zhavira'])
         jumlah_zhavira = int(request.form['jumlah_zhavira'])
 
-        if kode_barang_zhavira in session['keranjang_zhavira']:
-            session['keranjang_zhavira'][kode_barang_zhavira]['jumlah_zhavira'] += jumlah_zhavira
+        cursor.execute("SELECT stok_zhavira FROM tb_barang_zhavira WHERE kode_barang_zhavira = %s", (kode_barang_zhavira,))
+        barang_db = cursor.fetchone()
+        
+        jumlah_di_keranjang = session['keranjang_zhavira'].get(kode_barang_zhavira, {}).get('jumlah_zhavira', 0)
+        total_permintaan = jumlah_di_keranjang + jumlah_zhavira
+
+        if barang_db and total_permintaan > barang_db['stok_zhavira']:
+            error = f"Stok tidak mencukupi! Sisa stok: {barang_db['stok_zhavira']}"
+        elif kode_barang_zhavira in session['keranjang_zhavira']:
+                session['keranjang_zhavira'][kode_barang_zhavira]['jumlah_zhavira'] += jumlah_zhavira
         else:
             session['keranjang_zhavira'][kode_barang_zhavira] = {
                 'nama_barang_zhavira': nama_barang_zhavira,
@@ -746,11 +754,11 @@ def transaksi_kasir():
                 'jumlah_zhavira': jumlah_zhavira
             }
 
-        session['keranjang_zhavira'][kode_barang_zhavira]['subtotal_zhavira'] = \
-            session['keranjang_zhavira'][kode_barang_zhavira]['jumlah_zhavira'] * harga_zhavira
+            session['keranjang_zhavira'][kode_barang_zhavira]['subtotal_zhavira'] = \
+                session['keranjang_zhavira'][kode_barang_zhavira]['jumlah_zhavira'] * harga_zhavira
 
-        session.modified = True
-        preview_zhavira = None
+            session.modified = True
+            preview_zhavira = None
         jumlah_zhavira = None
 
     total_belanja_zhavira = sum(
