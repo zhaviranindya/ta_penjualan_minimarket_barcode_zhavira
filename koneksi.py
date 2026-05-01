@@ -59,8 +59,6 @@ def login_pengguna():
                 return redirect('/kasir')
             elif user['role_zhavira'] == 'staf':
                 return redirect('/dashboard_staf')
-            elif user['role_zhavira'] == 'manager':
-                return redirect('/dashboard_manager')
             elif user['role_zhavira'] == 'admin':
                 return redirect('/dashboard_admin')
 
@@ -85,12 +83,21 @@ def dashboard_admin():
     else:
         total_user = 0
 
+    cursor.execute("SELECT COUNT(*) as total_transaksi FROM tb_transaksi_zhavira")
+    data1 = cursor.fetchone()
+
+    if data1:
+        total_transaksi = data1['total_transaksi']
+    else:
+        total_transaksi = 0
+
     cursor.close()
     conn.close()
 
     return render_template(
         'dasboard_admin_zhavira.html',
         total_user=total_user,
+        total_transaksi=total_transaksi
     )
 
 @app.route('/dashboard_staf')
@@ -108,31 +115,6 @@ def dashboard_staf():
     conn.close()
 
     return render_template('dasboard_staf_zhavira.html', notif=notif)
-
-
-@app.route('/dashboard_manager')
-def dashboard_manager():
-    if session.get('role_zhavira') != 'manager':
-        return redirect('/')
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("SELECT COUNT(*) as total_transaksi FROM tb_transaksi_zhavira")
-    data1 = cursor.fetchone()
-
-    if data1:
-        total_transaksi = data1['total_transaksi']
-    else:
-        total_transaksi = 0
-
-    cursor.close()
-    conn.close()
-
-    return render_template(
-        'dasboard_manajer_zhavira.html',
-        total_transaksi=total_transaksi
-    )
 
 @app.route('/user')
 def data_user():
@@ -454,7 +436,7 @@ def hapus_barang(kode_barang_zhavira):
 
 @app.route('/keuangan')
 def laporan_keuangan():
-    if session.get('role_zhavira') != 'manager':
+    if session.get('role_zhavira') != 'admin':
         return redirect('/')
         
     conn = get_db_connection()
@@ -563,6 +545,9 @@ def laporan_keuangan():
 
 @app.route('/cetak_laporan_keuangan')
 def cetak_laporan_keuangan():
+    if session.get('role_zhavira') != 'admin':
+        return redirect('/')
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     periode = request.args.get('periode') 
@@ -848,6 +833,9 @@ def transaksi_kasir():
 
 @app.route('/hapusitem/<kode_barang_zhavira>')
 def hapus_item(kode_barang_zhavira):
+    if session.get('role_zhavira') != 'kasir':
+        return redirect('/')
+
     if 'keranjang_zhavira' in session:
         if kode_barang_zhavira in session['keranjang_zhavira']:
             session['keranjang_zhavira'].pop(kode_barang_zhavira)
@@ -857,6 +845,8 @@ def hapus_item(kode_barang_zhavira):
 
 @app.route('/struk/<id_transaksi>')
 def cetak_struk(id_transaksi):
+    if session.get('role_zhavira') != 'kasir':
+        return redirect('/')
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
