@@ -21,6 +21,7 @@
                 <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
                 <a href="{{ url_for('data_user') }}">Data User</a>
                 <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
                 <a href="{{ url_for('logout') }}">Logout</a>
             </div>
         </div>
@@ -32,10 +33,6 @@
 
             <form method="post" action="{{ url_for('tambahuser') }}">
                 <div class="form-row" style="display:flex; gap:20px; flex-wrap:wrap;">
-                    <div class="col" style="flex:1;">
-                        <label>ID User</label>
-                        <input type="text" name="id_user_zhavira" required>
-                    </div>
                     <div class="col" style="flex:1;">
                         <label>ID Perusahaan</label>
                         <input type="text" name="id_perusahaan_zhavira" required>

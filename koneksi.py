@@ -137,8 +137,25 @@ def tambahuser():
     if session.get('role_zhavira') != 'admin':
         return redirect('/')
 
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
     if request.method == 'POST':
-        id_user_zhavira = request.form.get('id_user_zhavira')
+
+        cursor.execute("""
+            SELECT id_user_zhavira
+            FROM tb_user_zhavira
+            ORDER BY id_user_zhavira DESC
+            LIMIT 1
+        """)
+        last2 = cursor.fetchone()
+
+        if last2:
+            angka2 = int(last2['id_user_zhavira'][2:]) + 1
+            id_user_zhavira = f"U{angka2:03d}"
+        else:
+            id_user_zhavira = "U001"
+
         id_perusahaan_zhavira = request.form.get('id_perusahaan_zhavira')
         username_zhavira = request.form.get('username_zhavira')
         password_zhavira = request.form.get('password_zhavira')
@@ -251,9 +268,8 @@ def tambahperusahaan():
         else:
             id_perusahaan_zhavira = "PC001"
 
-        nama_perusahaan_zhavira = "PT. PERTIWI MART INDONESIA"
-        nama_market_zhavira = "PERTIWI MART"
-
+        nama_perusahaan_zhavira = request.form.get('nama_perusahaan_zhavira')
+        nama_market_zhavira = request.form.get('nama_market_zhavira')
         alamat_zhavira = request.form.get('alamat_zhavira')
         no_telp_zhavira = request.form.get('no_telp_zhavira')
 
@@ -436,7 +452,7 @@ def hapus_barang(kode_barang_zhavira):
 
 @app.route('/keuangan')
 def laporan_keuangan():
-    if session.get('role_zhavira') != 'admin':
+    if session.get('role_zhavira') not in ['admin', 'kasir']:
         return redirect('/')
         
     conn = get_db_connection()
@@ -545,7 +561,7 @@ def laporan_keuangan():
 
 @app.route('/cetak_laporan_keuangan')
 def cetak_laporan_keuangan():
-    if session.get('role_zhavira') != 'admin':
+    if session.get('role_zhavira') not in ['admin', 'kasir']:
         return redirect('/')
 
     conn = get_db_connection()
