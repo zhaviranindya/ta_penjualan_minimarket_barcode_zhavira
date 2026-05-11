@@ -1,30 +1,105 @@
 <!doctype html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <title>Login - Pertiwi Mart</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .pw-wrapper {
+      position: relative;
+      margin-bottom: 15px;
+    }
+
+    .pw-wrapper input {
+      width: 100%;
+      padding-right: 42px;
+      margin-bottom: 0;
+    }
+
+    .pw-eye {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      box-shadow: none;
+      color: #b0b8c5;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s;
+    }
+
+    .pw-eye:hover {
+      color: var(--primary-red);
+      background: none;
+      box-shadow: none;
+      transform: translateY(-50%);
+    }
+
+    .icon-eye-off {
+      display: none;
+    }
+  </style>
 </head>
+
 <body>
   <div class="login-wrapper fade-in">
     <div class="login-card slide-down">
       <h2>LOGIN</h2>
-      <p class="subtitle">PERTIWI MART</p>
+      <p class="subtitle">PERTIWI MART 🏪</p>
 
       <form method="post" action="{{ url_for('login_pengguna') }}">
         <label>Username</label>
         <input type="text" name="username_zhavira" required>
 
         <label>Password</label>
-        <input type="password" name="password_zhavira" required>
+        <div class="pw-wrapper">
+          <input type="password" id="pw-input" name="password_zhavira" required>
+          <button type="button" class="pw-eye" onclick="togglePw()" title="Tampilkan/sembunyikan password">
+            <svg class="icon-eye-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <svg class="icon-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </svg>
+          </button>
+        </div>
 
         <button type="submit">MASUK</button>
       </form>
 
       {% if error %}
-        <div class="notif">{{ error }}</div>
+      <div class="notif">{{ error }}</div>
       {% endif %}
     </div>
   </div>
+
+  <script>
+    function togglePw() {
+      var input = document.getElementById('pw-input');
+      var eyeOn = document.querySelector('.icon-eye-on');
+      var eyeOff = document.querySelector('.icon-eye-off');
+      if (input.type === 'password') {
+        input.type = 'text';
+        eyeOn.style.display = 'none';
+        eyeOff.style.display = 'block';
+      } else {
+        input.type = 'password';
+        eyeOn.style.display = 'block';
+        eyeOff.style.display = 'none';
+      }
+    }
+  </script>
 </body>
+
 </html>
