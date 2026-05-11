@@ -3,13 +3,13 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Tambah Barang</title>
+    <title>Dashboard Owner</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body class="dashboard-layout">
-
     <div class="sidebar">
+
         <div>
             <div class="sidebar-profile">
                 <h2>{{ session.nama_perusahaan_zhavira }}</h2>
@@ -17,6 +17,7 @@
                 <p>{{ session.role_zhavira }}</p>
                 <p>{{ session.nama_user_zhavira }}</p>
             </div>
+
             <div class="sidebar-menu">
                 {% if session.role_zhavira == 'admin' %}
                 <a href="{{ url_for('dashboard_admin') }}">Dashboard Admin</a>
@@ -37,54 +38,30 @@
                 <a href="{{ url_for('transaksi_kasir') }}">Kasir</a>
                 <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
                 {% endif %}
-
+                
                 <a href="{{ url_for('logout') }}">Logout</a>
             </div>
         </div>
+
     </div>
 
     <div class="main-content">
         <div class="container fade-in">
-            <h1>Tambah Barang</h1>
 
-            <form method="post" action="{{ url_for('tambahbarang') }}">
-                <div class="form-row" style="display:flex; gap:20px; flex-wrap:wrap;">
-                    <div class="col" style="flex:1;">
-                        <label>Kode Barang</label>
-                        <input type="text" name="kode_barang_zhavira" required>
-                    </div>
-                    <div class="col" style="flex:1;">
-                        <label>Nama Barang</label>
-                        <input type="text" name="nama_barang_zhavira" required>
-                    </div>
+            <h1>Dashboard Owner</h1>
+
+
+            <div class="summary-wrapper">
+
+                <div class="summary-card">
+                    <h3>TOTAL TRANSAKSI</h3>
+                    <h2>{{ total_transaksi }}</h2>
                 </div>
 
-                <label>Harga</label>
-                <input type="text" id="harga_zhavira" min="0" required>
-                <input type="hidden" name="harga_zhavira" id="harga_uang_zhavira">
+            </div>
 
-                <label>Stok</label>
-                <input type="number" name="stok_zhavira" min="0" required>
-
-                <div style="margin-top:15px;">
-                    <button type="submit">Simpan</button>
-                    <a href="{{ url_for('data_barang') }}">
-                        <button type="button">Batal</button>
-                    </a>
-                </div>
-            </form>
         </div>
     </div>
-    <script>
-        const input = document.getElementById("harga_zhavira");
-        const hidden = document.getElementById("harga_uang_zhavira");
-
-        input.oninput = function () {
-            let angka2 = this.value.replace(/\D/g, "");
-            hidden.value = angka2;
-            this.value = new Intl.NumberFormat("id-ID").format(angka2);
-        };
-    </script>
 </body>
 
 </html>

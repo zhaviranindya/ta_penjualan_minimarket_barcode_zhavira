@@ -19,13 +19,28 @@
             </div>
 
             <div class="sidebar-menu">
-                <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+                {% if session.role_zhavira == 'admin' %}
+                <a href="{{ url_for('dashboard_admin') }}">Dashboard Admin</a>
                 <a href="{{ url_for('data_user') }}">Data User</a>
                 <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
                 <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'owner' %}
+                <a href="{{ url_for('dashboard_owner') }}">Dashboard Owner</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'staf' %}
+                <a href="{{ url_for('dashboard_staf') }}">Dashboard Staf</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
+
+                {% elif session.role_zhavira == 'kasir' %}
+                <a href="{{ url_for('transaksi_kasir') }}">Kasir</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+                {% endif %}
+
                 <a href="{{ url_for('logout') }}">Logout</a>
             </div>
-
         </div>
     </div>
 
@@ -41,31 +56,48 @@
             </div>
 
             <table>
-                    <tr>
-                        <th>ID User</th>
-                        <th>ID Perusahaan</th>
-                        <th>Username</th>
-                        <th>Password</th>
-                        <th>Nama</th>
-                        <th>Role</th>
-                        <th>Aksi</th>
-                    </tr>
-                    {% for u in user1 %}
-                    <tr>
-                        <td>{{ u.id_user_zhavira }}</td>
-                        <td>{{ u.id_perusahaan_zhavira }}</td>
-                        <td>{{ u.username_zhavira }}</td>
-                        <td>{{ u.password_zhavira }}</td>
-                        <td>{{ u.nama_user_zhavira }}</td>
-                        <td>{{ u.role_zhavira }}</td>
-                        <td>
+                <tr>
+                    <th>ID User</th>
+                    <th>ID Perusahaan</th>
+                    <th>Username</th>
+                    <th>Password</th>
+                    <th>Nama</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+                {% for u in user1 %}
+                <tr style="{{ 'opacity:0.4;' if u.status_user_zhavira == 'nonaktif' else '' }}">
+                    <td>{{ u.id_user_zhavira }}</td>
+                    <td>{{ u.id_perusahaan_zhavira }}</td>
+                    <td>{{ u.username_zhavira }}</td>
+                    <td>{{ u.password_zhavira }}</td>
+                    <td>{{ u.nama_user_zhavira }}</td>
+                    <td>{{ u.role_zhavira }}</td>
+                    <td>
+                        {% if u.status_user_zhavira == 'aktif' %}
+                        <span style="color:green;">● Aktif</span>
+                        {% else %}
+                        <span style="color:red;">● Nonaktif</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-start;">
+                            {% if u.status_user_zhavira == 'aktif' %}
                             <a href="{{ url_for('edit_user', id_user_zhavira=u.id_user_zhavira) }}"
                                 class="btn-edit">Edit</a>
-                            <a href="{{ url_for('hapus_user', id_user_zhavira=u.id_user_zhavira) }}"
-                                onclick="return confirm('Hapus?')" class="btn-delete">Hapus</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                            <a href="{{ url_for('nonaktifkan_user', id_user_zhavira=u.id_user_zhavira) }}"
+                                onclick="return confirm('Nonaktifkan user ini?')" class="btn-nonaktif">Nonaktifkan</a>
+                            {% else %}
+                            <span class="btn-edit"
+                                style="opacity:0.4; cursor:not-allowed; pointer-events:none;">Edit</span>
+                            <a href="{{ url_for('aktifkan_user', id_user_zhavira=u.id_user_zhavira) }}"
+                                onclick="return confirm('Aktifkan user ini?')" class="btn-aktif">Aktifkan</a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
             </table>
 
         </div>

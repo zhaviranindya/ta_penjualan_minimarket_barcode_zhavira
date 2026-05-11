@@ -18,10 +18,26 @@
                 <p>{{ session.nama_user_zhavira }}</p>
             </div>
             <div class="sidebar-menu">
-                <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+                {% if session.role_zhavira == 'admin' %}
+                <a href="{{ url_for('dashboard_admin') }}">Dashboard Admin</a>
                 <a href="{{ url_for('data_user') }}">Data User</a>
                 <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
                 <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'owner' %}
+                <a href="{{ url_for('dashboard_owner') }}">Dashboard Owner</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'staf' %}
+                <a href="{{ url_for('dashboard_staf') }}">Dashboard Staf</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
+
+                {% elif session.role_zhavira == 'kasir' %}
+                <a href="{{ url_for('transaksi_kasir') }}">Kasir</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+                {% endif %}
+
                 <a href="{{ url_for('logout') }}">Logout</a>
             </div>
         </div>
@@ -34,8 +50,15 @@
             <form method="post" action="{{ url_for('tambahuser') }}">
                 <div class="form-row" style="display:flex; gap:20px; flex-wrap:wrap;">
                     <div class="col" style="flex:1;">
-                        <label>ID Perusahaan</label>
-                        <input type="text" name="id_perusahaan_zhavira" required>
+                        <label> ID Perusahaan</label>
+                        <select name="id_perusahaan_zhavira" required>
+                            <option value="">-- Pilih Perusahaan --</option>
+                            {% for p in daftar_perusahaan %}
+                            <option value="{{ p.id_perusahaan_zhavira }}">
+                                {{ p.id_perusahaan_zhavira }} - {{ p.nama_perusahaan_zhavira }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
 
@@ -51,7 +74,7 @@
                 <label>Role</label>
                 <select name="role_zhavira" required>
                     <option value="admin">Admin</option>
-                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
                     <option value="staf">Staf</option>
                     <option value="kasir">Kasir</option>
                 </select>

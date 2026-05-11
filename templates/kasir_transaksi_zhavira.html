@@ -19,8 +19,26 @@
             </div>
 
             <div class="sidebar-menu">
+                {% if session.role_zhavira == 'admin' %}
+                <a href="{{ url_for('dashboard_admin') }}">Dashboard Admin</a>
+                <a href="{{ url_for('data_user') }}">Data User</a>
+                <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'owner' %}
+                <a href="{{ url_for('dashboard_owner') }}">Dashboard Owner</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'staf' %}
+                <a href="{{ url_for('dashboard_staf') }}">Dashboard Staf</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
+
+                {% elif session.role_zhavira == 'kasir' %}
                 <a href="{{ url_for('transaksi_kasir') }}">Kasir</a>
                 <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+                {% endif %}
+
                 <a href="{{ url_for('logout') }}">Logout</a>
             </div>
         </div>
@@ -52,19 +70,35 @@
                     <hr>
 
                     {% if preview_zhavira %}
-                    <form method="post">
-                        <h3>Preview Barang</h3>
-                        <p>Nama: {{ preview_zhavira.nama }}</p>
-                        <p>Harga: Rp {{ "{:,.0f}".format(preview_zhavira.harga).replace(",", ".") }}</p>
-                        <p>Jumlah: {{ jumlah_zhavira }}</p>
+                    <div class="preview-box"
+                        style="border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                        <form method="post">
+                            <h3>Preview Barang</h3>
+                            <p><strong>Nama:</strong> {{ preview_zhavira.nama }}</p>
 
-                        <input type="hidden" name="kode_barang_zhavira" value="{{ preview_zhavira.kode }}">
-                        <input type="hidden" name="nama_barang_zhavira" value="{{ preview_zhavira.nama }}">
-                        <input type="hidden" name="harga_zhavira" value="{{ preview_zhavira.harga }}">
-                        <input type="hidden" name="jumlah_zhavira" value="{{ jumlah_zhavira }}">
+                            {% if preview_zhavira.diskon_aktif %}
+                            <p style="color:red; font-weight:bold;">🔥 PROMO {{ preview_zhavira.diskon }}% OFF</p>
+                            <p>
+                                <del style="color: #888;">Rp {{ "{:,.0f}".format(preview_zhavira.harga_asli)
+                                    }}</del><br>
+                                <span style="font-size: 1.2em; color: #2c3e50;">
+                                    <b>Rp {{ "{:,.0f}".format(preview_zhavira.harga) }}</b>
+                                </span>
+                            </p>
+                            {% else %}
+                            <p><b>Harga:</b> Rp {{ "{:,.0f}".format(preview_zhavira.harga) }}</p>
+                            {% endif %}
 
-                        <button type="submit" name="tambah">Tambah ke Keranjang</button>
-                    </form>
+                            <p><b>Jumlah:</b> {{ jumlah_zhavira }}</p>
+
+                            <input type="hidden" name="kode_barang_zhavira" value="{{ preview_zhavira.kode }}">
+                            <input type="hidden" name="nama_barang_zhavira" value="{{ preview_zhavira.nama }}">
+                            <input type="hidden" name="harga_zhavira" value="{{ preview_zhavira.harga }}">
+                            <input type="hidden" name="jumlah_zhavira" value="{{ jumlah_zhavira }}">
+
+                            <button type="submit" name="tambah" class="btn-add">✅ Tambahkan ke Keranjang</button>
+                        </form>
+                    </div>
                     {% endif %}
 
                     <table>
@@ -99,8 +133,25 @@
                         <p style="color:red">{{ error }}</p>
                         {% endif %}
 
+                        {% set total_normal = namespace(val=0) %}
+                        {% for kode, item in keranjang.items() %}
+                        {% set harga_asli = item.harga_asli if item.harga_asli is defined else item.harga_zhavira %}
+                        {% set total_normal.val = total_normal.val + (harga_asli * item.jumlah_zhavira) %}
+                        {% endfor %}
+
+                        {% if total_normal.val > total_belanja_zhavira %}
+                        <p style="color:#888; margin-bottom:0;">Total:</p>
+                        <p><del style="color:#aaa;">Rp {{ "{:,.0f}".format(total_normal.val).replace(",", ".") }}</del>
+                        </p>
+                        <p style="margin-bottom:0;">Hemat:</p>
+                        <p style="color:green; font-weight:bold;">Rp {{ "{:,.0f}".format(total_normal.val -
+                            total_belanja_zhavira).replace(",", ".") }}</p>
+                        <p style="margin-bottom:0;">Anda Bayar:</p>
+                        <h2>Rp {{ "{:,.0f}".format(total_belanja_zhavira).replace(",", ".") }}</h2>
+                        {% else %}
                         <p>Total:</p>
                         <h2>Rp {{ "{:,.0f}".format(total_belanja_zhavira).replace(",", ".") }}</h2>
+                        {% endif %}
 
                         <label>Metode</label>
                         <select name="metode_bayar_zhavira">
@@ -114,21 +165,18 @@
                         <button type="submit" name="cetak">CETAK STRUK</button>
                     </form>
                 </div>
-
             </div>
-        </div>
-    </div>
 
-    <script>
-        const input = document.getElementById("uang_bayar_zhavira");
-        const hidden = document.getElementById("uang_asli_zhavira");
+            <script>
+                const input = document.getElementById("uang_bayar_zhavira");
+                const hidden = document.getElementById("uang_asli_zhavira");
 
-        input.oninput = function () {
-            let angka = this.value.replace(/\D/g, "");
-            hidden.value = angka;
-            this.value = new Intl.NumberFormat("id-ID").format(angka);
-        };
-    </script>
+                input.oninput = function () {
+                    let angka = this.value.replace(/\D/g, "");
+                    hidden.value = angka;
+                    this.value = new Intl.NumberFormat("id-ID").format(angka);
+                };
+            </script>
 </body>
 
 </html>

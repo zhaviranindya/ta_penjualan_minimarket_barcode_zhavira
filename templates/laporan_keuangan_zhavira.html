@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <title>Laporan Keuangan</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body class="dashboard-layout">
@@ -17,13 +18,27 @@
                 <p>{{ session.role_zhavira }}</p>
                 <p>{{ session.nama_user_zhavira }}</p>
             </div>
-
             <div class="sidebar-menu">
-                <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+                {% if session.role_zhavira == 'admin' %}
+                <a href="{{ url_for('dashboard_admin') }}">Dashboard Admin</a>
                 <a href="{{ url_for('data_user') }}">Data User</a>
                 <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'owner' %}
+                <a href="{{ url_for('dashboard_owner') }}">Dashboard Owner</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'staf' %}
+                <a href="{{ url_for('dashboard_staf') }}">Dashboard Staf</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
+
+                {% elif session.role_zhavira == 'kasir' %}
                 <a href="{{ url_for('transaksi_kasir') }}">Kasir</a>
                 <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+                {% endif %}
+
                 <a href="{{ url_for('logout') }}">Logout</a>
             </div>
         </div>
@@ -34,16 +49,12 @@
 
             <h1>Laporan Keuangan</h1>
 
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <a href="{{ url_for('cetak_laporan_keuangan', periode=periode) }}" target="_blank">
-                    <button type="button">CetakPDF</button>
-                </a>
-            </div>
-
-            <form method="get" style="margin-bottom: 20px;">
-                <label for="periode">Pilih Periode:</label>
+            <form method="get" style="margin-bottom:10px;">
+                <input type="hidden" name="tgl_mulai" value="{{ tgl_mulai }}">
+                <input type="hidden" name="tgl_selesai" value="{{ tgl_selesai }}">
+                <label for="periode">Periode:</label>
                 <select name="periode" id="periode" onchange="this.form.submit()"
-                    style="padding: 5px; border-radius: 4px;">
+                    style="padding:5px; border-radius:4px;">
                     <option value="jam" {% if periode=='jam' %}selected{% endif %}>Per Jam</option>
                     <option value="sesi" {% if periode=='sesi' %}selected{% endif %}>Per Sesi</option>
                     <option value="hari" {% if periode=='hari' %}selected{% endif %}>Per Hari</option>
@@ -53,32 +64,148 @@
                 </select>
             </form>
 
+            <form method="get"
+                style="margin-bottom:20px; display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end;">
+                <!-- HAPUS baris ini: <input type="hidden" name="periode" value="{{ periode }}"> -->
+                <div>
+                    <label for="tgl_mulai">Dari Tanggal:</label><br>
+                    <input type="date" name="tgl_mulai" id="tgl_mulai" value="{{ tgl_mulai }}"
+                        style="padding:5px; border-radius:4px;">
+                </div>
+                <div>
+                    <label for="tgl_selesai">Sampai Tanggal:</label><br>
+                    <input type="date" name="tgl_selesai" id="tgl_selesai" value="{{ tgl_selesai }}"
+                        style="padding:5px; border-radius:4px;">
+                </div>
+                <div>
+                    <button type="submit">🔍 Cari</button>
+                </div>
+                {% if tgl_mulai and tgl_selesai %}
+                <div>
+                    <a href="{{ url_for('laporan_keuangan') }}">
+                        <button type="button">✖ Reset</button>
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+
+            <div style="margin-bottom: 15px;">
+                <a href="{{ url_for('cetak_laporan_keuangan', periode=periode, tgl_mulai=tgl_mulai, tgl_selesai=tgl_selesai) }}"
+                    target="_blank">
+                    <button type="button">🖨️ Cetak PDF</button>
+                </a>
+            </div>
+
+            {% if data %}
+            <div style="margin-bottom: 30px;">
+                <canvas id="grafikLaporan" style="max-height:300px;"></canvas>
+            </div>
+            {% endif %}
+
             <table class="laporan-table">
-                <thead>
-                    <tr>
-                        <th>Periode</th>
-                        <th>Jumlah Transaksi</th>
-                        <th>Total</th>
-                        <th>Tunai</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for d in data %}
-                    <tr>
-                        <td>{{ d.perperiode }}</td>
-                        <td>{{ d.jumlah_transaksi }}</td>
-                        <td>Rp {{ "{:,.0f}".format(d.total_penjualan or 0) }}</td>
-                        <td class="metode-tunai">Rp {{ "{:,.0f}".format(d.tunai or 0) }}</td>
-                    </tr>
-                    {% endfor %}
+                <tr>
+                    <th>Periode</th>
+                    <th>Jumlah Transaksi</th>
+                    <th>Total Penjualan</th>
+                    <th>Diskon</th>
+                    <th>Tunai</th>
+                </tr>
+
+                {% for d in data %}
+                <tr {% if d.status_jam=='diluar' %}style="background-color:#fff3cd;" {% endif %}>
+                    <td>
+                        {{ d.perperiode }}
+                        {% if d.status_jam == 'diluar' %}
+                        <span style="color:orange; font-weight:bold;" title="Di luar jam operasional (08:00–23:00)">
+                            ⚠️ Luar Jam
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ d.jumlah_transaksi }}</td>
+                    <td>Rp {{ "{:,.0f}".format(d.total_penjualan or 0) }}</td>
+                    <td style="color:red; font-weight:bold;">
+                        {% if d.total_diskon and d.total_diskon > 0 %}
+                        Rp {{ "{:,.0f}".format(d.total_diskon) }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>Rp {{ "{:,.0f}".format(d.tunai or 0) }}</td>
+                </tr>
+                {% endfor %}
             </table>
 
-            <div style="text-align:right; margin-top:20px; font-size: 1.2em;">
+            <div style="text-align:right; margin-top:20px; font-size:1.2em;">
                 <b>Total Omzet: Rp {{ "{:,.0f}".format(total_omzet) }}</b>
             </div>
 
         </div>
     </div>
+
+    <script>
+        const labels = {{ data | map(attribute = 'perperiode') | list | tojson }};
+        const penjualan = {{ data | map(attribute = 'total_penjualan') | list | tojson }};
+        const tunai = {{ data | map(attribute = 'tunai') | list | tojson }};
+
+        const ctx = document.getElementById('grafikLaporan');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Penjualan',
+                            data: penjualan,
+                            backgroundColor: 'rgba(227, 6, 19, 0.1)',
+                            borderColor: 'rgba(227, 6, 19, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(227, 6, 19, 1)',
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Tunai',
+                            data: tunai,
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': Rp ' +
+                                        parseInt(context.raw || 0).toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function (value) {
+                                    return 'Rp ' + parseInt(value).toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
 
 </body>
 

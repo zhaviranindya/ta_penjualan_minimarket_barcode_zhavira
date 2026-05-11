@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <title>Edit Perusahaan</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body class="dashboard-layout">
 
     <div class="sidebar">
@@ -16,10 +18,26 @@
                 <p>{{ session.nama_user_zhavira }}</p>
             </div>
             <div class="sidebar-menu">
-                <a href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+                {% if session.role_zhavira == 'admin' %}
+                <a href="{{ url_for('dashboard_admin') }}">Dashboard Admin</a>
                 <a href="{{ url_for('data_user') }}">Data User</a>
                 <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
                 <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'owner' %}
+                <a href="{{ url_for('dashboard_owner') }}">Dashboard Owner</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+                {% elif session.role_zhavira == 'staf' %}
+                <a href="{{ url_for('dashboard_staf') }}">Dashboard Staf</a>
+                <a href="{{ url_for('data_barang') }}">Data Barang</a>
+
+                {% elif session.role_zhavira == 'kasir' %}
+                <a href="{{ url_for('transaksi_kasir') }}">Kasir</a>
+                <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+                {% endif %}
+
                 <a href="{{ url_for('logout') }}">Logout</a>
             </div>
         </div>
@@ -29,22 +47,26 @@
         <div class="container fade-in">
             <h1>Edit Perusahaan</h1>
 
-            <form method="post" action="{{ url_for('edit_perusahaan', id_perusahaan_zhavira=perusahaan1.id_perusahaan_zhavira) }}">
+            <form method="post"
+                action="{{ url_for('edit_perusahaan', id_perusahaan_zhavira=perusahaan1.id_perusahaan_zhavira) }}">
                 <div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:15px;">
                     <div style="flex:1;">
                         <label>ID Perusahaan</label>
-                        <input type="text" name="id_perusahaan_zhavira" value="{{ perusahaan1.id_perusahaan_zhavira }}" required>
+                        <input type="text" name="id_perusahaan_zhavira" value="{{ perusahaan1.id_perusahaan_zhavira }}"
+                            readonly>
                     </div>
                 </div>
 
                 <div style="display:flex; gap:20px; flex-wrap:wrap;">
                     <div style="flex:1;">
                         <label>Nama Perusahaan</label>
-                        <input type="text" name="nama_perusahaan_zhavira" value="{{ perusahaan1.nama_perusahaan_zhavira }}" required>
+                        <input type="text" name="nama_perusahaan_zhavira"
+                            value="{{ perusahaan1.nama_perusahaan_zhavira }}" required>
                     </div>
                     <div style="flex:1;">
                         <label>Nama Market</label>
-                        <input type="text" name="nama_market_zhavira" value="{{ perusahaan1.nama_market_zhavira }}" required>
+                        <input type="text" name="nama_market_zhavira" value="{{ perusahaan1.nama_market_zhavira }}"
+                            required>
                     </div>
                     <div style="flex:1;">
                         <label>Alamat</label>
@@ -67,4 +89,5 @@
     </div>
 
 </body>
+
 </html>

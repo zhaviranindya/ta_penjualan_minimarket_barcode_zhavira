@@ -10,7 +10,6 @@
 <body class="dashboard-layout">
 
   <div class="sidebar">
-
     <div>
       <div class="sidebar-profile">
         <h2>{{ session.nama_perusahaan_zhavira }}</h2>
@@ -18,14 +17,30 @@
         <p>{{ session.role_zhavira }}</p>
         <p>{{ session.nama_user_zhavira }}</p>
       </div>
-
       <div class="sidebar-menu">
-        <a href="{{ url_for('dashboard_staf') }}">Dashboard</a>
+        {% if session.role_zhavira == 'admin' %}
+        <a href="{{ url_for('dashboard_admin') }}">Dashboard Admin</a>
+        <a href="{{ url_for('data_user') }}">Data User</a>
+        <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
         <a href="{{ url_for('data_barang') }}">Data Barang</a>
+        <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+        {% elif session.role_zhavira == 'owner' %}
+        <a href="{{ url_for('dashboard_owner') }}">Dashboard Owner</a>
+        <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+        {% elif session.role_zhavira == 'staf' %}
+        <a href="{{ url_for('dashboard_staf') }}">Dashboard Staf</a>
+        <a href="{{ url_for('data_barang') }}">Data Barang</a>
+
+        {% elif session.role_zhavira == 'kasir' %}
+        <a href="{{ url_for('transaksi_kasir') }}">Kasir</a>
+        <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+        {% endif %}
+
         <a href="{{ url_for('logout') }}">Logout</a>
       </div>
     </div>
-
   </div>
 
   <div class="main-content">
@@ -33,14 +48,26 @@
 
       <h1>Dashboard Staf</h1>
 
-      {% if notif %}
-      {% for n in notif %}
-      <div class="notif-item">
-        🚨 Stok {{ n.nama_barang_zhavira }} HABIS
+      {% if notif_habis %}
+      {% for n in notif_habis %}
+      <div class="notif-item"
+        style="background-color:#ffe0e0; border-left:5px solid #e30613; padding:10px; margin-bottom:8px; border-radius:5px;">
+        ⚠️ <b>{{ n.nama_barang_zhavira }}</b> — Stok <b>HABIS</b>
       </div>
       {% endfor %}
-      {% else %}
-      <p>Tidak ada stok habis</p>
+      {% endif %}
+
+      {% if notif_menipis %}
+      {% for n in notif_menipis %}
+      <div class="notif-item"
+        style="background-color:#fff8e0; border-left:5px solid #f0a500; padding:10px; margin-bottom:8px; border-radius:5px;">
+        🚨 <b>{{ n.nama_barang_zhavira }}</b> — Stok tinggal <b>{{ n.stok_zhavira }}</b>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if not notif_habis and not notif_menipis %}
+      <p>✅ Semua stok barang aman.</p>
       {% endif %}
 
     </div>

@@ -22,7 +22,7 @@ body {
     background: var(--bg-card);
     padding: 30px;
     border-radius: 10px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
 h1 {
@@ -64,7 +64,8 @@ button a {
     text-decoration: none;
 }
 
-input, select {
+input,
+select {
     padding: 10px;
     margin-top: 8px;
     margin-bottom: 15px;
@@ -74,7 +75,8 @@ input, select {
     background: white;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
     border: 1px solid var(--primary-red);
     outline: none;
 }
@@ -116,7 +118,7 @@ tr:hover {
     padding: 25px;
     border-radius: 10px;
     border-left: 5px solid var(--primary-red);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .summary-card h3 {
@@ -165,6 +167,24 @@ tr:hover {
     background: var(--primary-red-dark);
 }
 
+.btn-nonaktif {
+    background-color: #e74c3c;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.btn-aktif {
+    background-color: #27ae60;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 13px;
+}
+
 .laporan-title {
     font-size: 20px;
     color: var(--text-dark);
@@ -202,7 +222,7 @@ tr:hover {
     padding: 25px;
     border-radius: 10px;
     border-top: 4px solid var(--primary-red);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .kasir-right h3 {
@@ -229,7 +249,7 @@ tr:hover {
     background: white;
     padding: 30px;
     border-radius: 12px;
-    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
 }
 
 .subtitle {
@@ -252,7 +272,7 @@ tr:hover {
     text-decoration: none;
     color: var(--text-dark);
     border-top: 4px solid var(--primary-blue);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
     transition: 0.2s;
 }
 
@@ -312,7 +332,7 @@ tr:hover {
 }
 
 .sidebar-menu a:hover {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .main-content {
@@ -324,7 +344,55 @@ tr:hover {
     margin: 30px;
 }
 
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.pagination button {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #e3061c;
+    font-weight: 500;
+}
+
+.pagination button.active {
+    background-color: #e3061c;
+    color: white;
+    border-color: #e3061c;
+    font-weight: bold;
+}
+
+.pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pagination button:hover:not(.active):not(:disabled) {
+    background-color: #f0f0f0;
+}
+
+.info-pagination {
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+    margin-top: 8px;
+}
+
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }

@@ -19,8 +19,26 @@
       </div>
 
       <div class="sidebar-menu">
-        <a href="{{ url_for('dashboard_staf') }}">Dashboard</a>
+        {% if session.role_zhavira == 'admin' %}
+        <a href="{{ url_for('dashboard_admin') }}">Dashboard Admin</a>
+        <a href="{{ url_for('data_user') }}">Data User</a>
+        <a href="{{ url_for('data_perusahaan') }}">Data Perusahaan</a>
         <a href="{{ url_for('data_barang') }}">Data Barang</a>
+        <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+        {% elif session.role_zhavira == 'owner' %}
+        <a href="{{ url_for('dashboard_owner') }}">Dashboard Owner</a>
+        <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+
+        {% elif session.role_zhavira == 'staf' %}
+        <a href="{{ url_for('dashboard_staf') }}">Dashboard Staf</a>
+        <a href="{{ url_for('data_barang') }}">Data Barang</a>
+
+        {% elif session.role_zhavira == 'kasir' %}
+        <a href="{{ url_for('transaksi_kasir') }}">Kasir</a>
+        <a href="{{ url_for('laporan_keuangan') }}">Laporan</a>
+        {% endif %}
+
         <a href="{{ url_for('logout') }}">Logout</a>
       </div>
     </div>
@@ -37,34 +55,169 @@
         </button>
       </div>
 
-      <table>
+      <div style="margin-bottom: 15px; display:flex; gap:8px;">
+        <input type="text" id="searchBarang" placeholder="🔍 Cari kode atau nama barang..." autocomplete="off"
+          oninput="filterBarang()"
+          style="padding:8px 12px; border-radius:6px; border:1px solid #ccc; width:300px; font-size:14px;">
+      </div>
+
+      <table id="tabelBarang">
         <tr>
           <th>Kode</th>
           <th>Nama</th>
           <th>Stok</th>
           <th>Harga</th>
+          <th>Diskon</th>
+          <th>Harga Final</th>
           <th>Status</th>
           <th>Aksi</th>
         </tr>
 
         {% for b in barang %}
-        <tr>
+        <tr class="baris-barang" data-kode="{{ b.kode_barang_zhavira }}" data-nama="{{ b.nama_barang_zhavira }}"
+          style="{{ 'opacity:0.4;' if b.status_zhavira == 'nonaktif' else '' }}">
           <td>{{ b.kode_barang_zhavira }}</td>
           <td>{{ b.nama_barang_zhavira }}</td>
           <td>{{ b.stok_zhavira }}</td>
           <td>Rp {{ "{:,.0f}".format(b.harga_zhavira) }}</td>
-          <td>{{ b.status_zhavira }}</td>
           <td>
-            <a href="{{ url_for('edit_barang', kode_barang_zhavira=b.kode_barang_zhavira) }}" class="btn-edit">Edit</a> <br>
-            <a href="{{ url_for('hapus_barang', kode_barang_zhavira=b.kode_barang_zhavira) }}"
-              onclick="return confirm('Hapus?')" class="btn-delete">Hapus</a>
+            <span style="color: {{ 'black' if b.diskon_aktif else '#ccc' }}">
+              {{ b.diskon_zhavira }}%
+            </span>
+            {% if not b.diskon_aktif %}
+            <br><small>(Tidak Aktif)</small>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if b.diskon_aktif %}
+            <b>Rp {{ "{:,.0f}".format(b.harga_final) }}</b>
+            {% else %}
+            Rp {{ "{:,.0f}".format(b.harga_zhavira) }}
+            {% endif %}
+          </td>
+          <td>
+            {% if b.status_zhavira == 'aktif' %}
+            <span style="color:green;">● Aktif</span>
+            {% else %}
+            <span style="color:red;">● Nonaktif</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-start;">
+              {% if b.status_zhavira == 'aktif' %}
+              <a href="{{ url_for('edit_barang', kode_barang_zhavira=b.kode_barang_zhavira) }}"
+                class="btn-edit">Edit</a>
+              <a href="{{ url_for('nonaktifkan_barang', kode_barang_zhavira=b.kode_barang_zhavira) }}"
+                onclick="return confirm('Nonaktifkan barang ini?')" class="btn-nonaktif">Nonaktifkan</a>
+              {% else %}
+              <span class="btn-edit" style="opacity:0.4; cursor:not-allowed; pointer-events:none;">Edit</span>
+              <a href="{{ url_for('aktifkan_barang', kode_barang_zhavira=b.kode_barang_zhavira) }}"
+                onclick="return confirm('Aktifkan barang ini?')" class="btn-aktif">Aktifkan</a>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {% endfor %}
       </table>
+
+      <div class="info-pagination" id="infoPaginasi"></div>
+
+      <div class="pagination" id="kontrolPaginasi"></div>
+
     </div>
   </div>
 
+  <script>
+    const ITEMS_PER_PAGE = 10;
+    let halamanSaatIni = 1;
+
+    function getBarisLolosFilter() {
+      return Array.from(document.querySelectorAll('.baris-barang'))
+        .filter(tr => tr.getAttribute('data-filtered') !== 'hide');
+    }
+
+    function tampilHalaman(halaman) {
+      halamanSaatIni = halaman;
+
+      const barisLolos = getBarisLolosFilter();
+      const totalData = barisLolos.length;
+      const totalHalaman = Math.max(1, Math.ceil(totalData / ITEMS_PER_PAGE));
+
+      if (halamanSaatIni > totalHalaman) halamanSaatIni = totalHalaman;
+
+      const mulai = (halamanSaatIni - 1) * ITEMS_PER_PAGE;
+      const selesai = mulai + ITEMS_PER_PAGE;
+
+      barisLolos.forEach((tr, index) => {
+        tr.style.display = (index >= mulai && index < selesai) ? '' : 'none';
+      });
+
+      const infoEl = document.getElementById('infoPaginasi');
+      if (totalData === 0) {
+        infoEl.textContent = 'Tidak ada data yang ditemukan.';
+      } else {
+        const tampilMulai = mulai + 1;
+        const tampilSelesai = Math.min(selesai, totalData);
+        infoEl.textContent = `Menampilkan ${tampilMulai}–${tampilSelesai} dari ${totalData} barang`;
+      }
+
+      renderTombolPaginasi(totalHalaman);
+    }
+
+    function renderTombolPaginasi(totalHalaman) {
+      const kontrol = document.getElementById('kontrolPaginasi');
+      kontrol.innerHTML = '';
+
+      if (totalHalaman <= 1) return;
+
+      const btnPrev = document.createElement('button');
+      btnPrev.textContent = '← Sebelumnya';
+      btnPrev.disabled = halamanSaatIni === 1;
+      btnPrev.onclick = () => tampilHalaman(halamanSaatIni - 1);
+      kontrol.appendChild(btnPrev);
+
+      for (let i = 1; i <= totalHalaman; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        if (i === halamanSaatIni) btn.classList.add('active');
+        btn.onclick = () => tampilHalaman(i);
+        kontrol.appendChild(btn);
+      }
+
+      const btnNext = document.createElement('button');
+      btnNext.textContent = 'Berikutnya →';
+      btnNext.disabled = halamanSaatIni === totalHalaman;
+      btnNext.onclick = () => tampilHalaman(halamanSaatIni + 1);
+      kontrol.appendChild(btnNext);
+    }
+
+    function filterBarang() {
+      const keyword = document.getElementById('searchBarang').value.toLowerCase().trim();
+      const semuaBaris = document.querySelectorAll('.baris-barang');
+
+      semuaBaris.forEach(tr => {
+        const kode = tr.getAttribute('data-kode').toLowerCase();
+        const nama = tr.getAttribute('data-nama').toLowerCase();
+        const cocok = keyword === '' || kode.includes(keyword) || nama.includes(keyword);
+
+        if (cocok) {
+          tr.removeAttribute('data-filtered');
+        } else {
+          tr.setAttribute('data-filtered', 'hide');
+          tr.style.display = 'none';
+        }
+      });
+
+      tampilHalaman(1);
+    }
+
+    document.getElementById('searchBarang').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') filterBarang();
+    });
+
+    tampilHalaman(1);
+  </script>
 </body>
 
 </html>

@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template, redirect, url_for, session
 import mysql.connector
-from datetime import datetime
+from datetime import datetime, date
 from fpdf import FPDF
 from flask import make_response
 
@@ -61,11 +61,38 @@ def login_pengguna():
                 return redirect('/dashboard_staf')
             elif user['role_zhavira'] == 'admin':
                 return redirect('/dashboard_admin')
+            elif user['role_zhavira'] == 'owner':
+                return redirect('/dashboard_owner')
 
         return render_template('login_pengguna_zhavira.html',
                                error="Username atau password salah")
 
     return render_template('login_pengguna_zhavira.html')
+
+@app.route('/dashboard_owner')
+def dashboard_owner():
+    if session.get('role_zhavira') != 'owner':
+        return redirect('/')
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT COUNT(*) as total_transaksi FROM tb_transaksi_zhavira")
+    data_t = cursor.fetchone()
+
+    if data_t:
+        total_transaksi = data_t['total_transaksi']
+    else:
+        total_transaksi = 0
+        
+
+    cursor.close()
+    conn.close()
+
+
+    return render_template(
+        'dasboard_owner_zhavira.html',
+        total_transaksi=total_transaksi
+    )
 
 @app.route('/dashboard_admin')
 def dashboard_admin():
@@ -74,6 +101,12 @@ def dashboard_admin():
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM tb_barang_zhavira WHERE stok_zhavira <= 0 AND status_zhavira = 'aktif'")
+    notif_habis = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM tb_barang_zhavira WHERE stok_zhavira BETWEEN 1 AND 5 AND status_zhavira = 'aktif'")
+    notif_menipis = cursor.fetchall()
 
     cursor.execute("SELECT COUNT(*) as total_user FROM tb_user_zhavira")
     data_u = cursor.fetchone()
@@ -97,7 +130,9 @@ def dashboard_admin():
     return render_template(
         'dasboard_admin_zhavira.html',
         total_user=total_user,
-        total_transaksi=total_transaksi
+        total_transaksi=total_transaksi,
+        notif_habis=notif_habis, 
+        notif_menipis=notif_menipis
     )
 
 @app.route('/dashboard_staf')
@@ -108,13 +143,18 @@ def dashboard_staf():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT * FROM tb_barang_zhavira WHERE stok_zhavira <= 0")
-    notif = cursor.fetchall()
+    cursor.execute("SELECT * FROM tb_barang_zhavira WHERE stok_zhavira <= 0 AND status_zhavira = 'aktif'")
+    notif_habis = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM tb_barang_zhavira WHERE stok_zhavira BETWEEN 1 AND 5 AND status_zhavira = 'aktif'")
+    notif_menipis = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
-    return render_template('dasboard_staf_zhavira.html', notif=notif)
+    return render_template('dasboard_staf_zhavira.html', 
+                           notif_habis=notif_habis, 
+                           notif_menipis=notif_menipis)
 
 @app.route('/user')
 def data_user():
@@ -132,6 +172,38 @@ def data_user():
 
     return render_template('data_user_zhavira.html', user1=user1)
 
+@app.route('/nonaktifkan/<id_user_zhavira>')
+def nonaktifkan_user(id_user_zhavira):
+    if session.get('role_zhavira') != 'admin':
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE tb_user_zhavira SET status_user_zhavira='nonaktif' 
+        WHERE id_user_zhavira=%s
+    """, (id_user_zhavira,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return redirect(url_for('data_user'))
+
+@app.route('/aktifkan/<id_user_zhavira>')
+def aktifkan_user(id_user_zhavira):
+    if session.get('role_zhavira') != 'admin':
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE tb_user_zhavira SET status_user_zhavira='aktif' 
+        WHERE id_user_zhavira=%s
+    """, (id_user_zhavira,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return redirect(url_for('data_user'))
+
 @app.route('/tambahuser', methods=['GET', 'POST'])
 def tambahuser():
     if session.get('role_zhavira') != 'admin':
@@ -140,8 +212,10 @@ def tambahuser():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    if request.method == 'POST':
+    cursor.execute("SELECT * FROM tb_perusahaan_zhavira")
+    daftar_perusahaan = cursor.fetchall()
 
+    if request.method == 'POST':
         cursor.execute("""
             SELECT id_user_zhavira
             FROM tb_user_zhavira
@@ -162,21 +236,20 @@ def tambahuser():
         nama_user_zhavira = request.form.get('nama_user_zhavira')
         role_zhavira = request.form.get('role_zhavira')
 
-        conn = get_db_connection()
         cursor = conn.cursor()
-
         cursor.execute("""
             INSERT INTO tb_user_zhavira (id_user_zhavira, id_perusahaan_zhavira, username_zhavira, password_zhavira, nama_user_zhavira, role_zhavira)
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (id_user_zhavira, id_perusahaan_zhavira, username_zhavira, password_zhavira, nama_user_zhavira, role_zhavira))
-        
+
         conn.commit()
         cursor.close()
         conn.close()
-
         return redirect(url_for('data_user'))
 
-    return render_template('tambah_user_zhavira.html')
+    cursor.close()
+    conn.close()
+    return render_template('tambah_user_zhavira.html', daftar_perusahaan=daftar_perusahaan)
 
 @app.route('/edituser/<id_user_zhavira>', methods=['GET', 'POST'])
 def edit_user(id_user_zhavira):
@@ -244,51 +317,6 @@ def data_perusahaan():
 
     return render_template('data_perusahaan_zhavira.html', perusahaan=perusahaan)
 
-@app.route('/tambahperusahaan', methods=['GET', 'POST'])
-def tambahperusahaan():
-    if session.get('role_zhavira') != 'admin':
-        return redirect('/')
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    if request.method == 'POST':
-
-        cursor.execute("""
-            SELECT id_perusahaan_zhavira
-            FROM tb_perusahaan_zhavira
-            ORDER BY id_perusahaan_zhavira DESC
-            LIMIT 1
-        """)
-        last1 = cursor.fetchone()
-
-        if last1:
-            angka1 = int(last1['id_perusahaan_zhavira'][2:]) + 1
-            id_perusahaan_zhavira = f"PC{angka1:03d}"
-        else:
-            id_perusahaan_zhavira = "PC001"
-
-        nama_perusahaan_zhavira = request.form.get('nama_perusahaan_zhavira')
-        nama_market_zhavira = request.form.get('nama_market_zhavira')
-        alamat_zhavira = request.form.get('alamat_zhavira')
-        no_telp_zhavira = request.form.get('no_telp_zhavira')
-
-        cursor.execute("""
-            INSERT INTO tb_perusahaan_zhavira
-            (id_perusahaan_zhavira, nama_perusahaan_zhavira, nama_market_zhavira, alamat_zhavira, no_telp_zhavira)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (id_perusahaan_zhavira, nama_perusahaan_zhavira, nama_market_zhavira, alamat_zhavira, no_telp_zhavira))
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        return redirect(url_for('data_perusahaan'))
-
-    cursor.close()
-    conn.close()
-    return render_template('tambah_perusahaan_zhavira.html')
-
 @app.route('/editperusahaan/<id_perusahaan_zhavira>', methods=['GET', 'POST'])
 def edit_perusahaan(id_perusahaan_zhavira):
     if session.get('role_zhavira') != 'admin':
@@ -326,68 +354,102 @@ def edit_perusahaan(id_perusahaan_zhavira):
     conn.close()
     return render_template('edithapus_perusahaan_zhavira.html', perusahaan1=perusahaan1)
 
-@app.route('/hapusperusahaan/<id_perusahaan_zhavira>')
-def hapus_perusahaan(id_perusahaan_zhavira):
-    if session.get('role_zhavira') != 'admin':
-        return redirect('/')
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM tb_perusahaan_zhavira WHERE id_perusahaan_zhavira = %s", (id_perusahaan_zhavira,))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return redirect(url_for('data_perusahaan'))
-
-
 @app.route('/barang')
 def data_barang():
-    if session.get('role_zhavira') != 'staf':
+    if session.get('role_zhavira') not in ['admin', 'staf']:
         return redirect('/')
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("""
-        UPDATE tb_barang_zhavira
-        SET status_zhavira = 
-            CASE 
-                WHEN stok_zhavira <= 0 THEN 'tidak tersedia'
-                ELSE 'tersedia'
-            END
-    """)
-    conn.commit()
-
     cursor.execute("SELECT * FROM tb_barang_zhavira")
-    barang = cursor.fetchall()
+    barang_db = cursor.fetchall()
+
+    today = datetime.now().date()
+
+    barang = []
+
+    for b in barang_db:
+        harga_asli = b['harga_zhavira']
+        nilai_diskon = int(b['diskon_zhavira']) if b['diskon_zhavira'] else 0
+        tgl_mulai = b.get('tanggal_mulai_diskon_zhavira')
+        tgl_selesai = b.get('tanggal_selesai_diskon_zhavira')
+
+        diskon_aktif = False
+        if tgl_mulai and tgl_selesai:
+            if not isinstance(tgl_mulai, date):
+                tgl_mulai = datetime.strptime(str(tgl_mulai), "%Y-%m-%d").date()
+            if not isinstance(tgl_selesai, date):
+                tgl_selesai = datetime.strptime(str(tgl_selesai), "%Y-%m-%d").date()
+
+            if tgl_mulai <= today <= tgl_selesai:
+                diskon_aktif = True
+
+        if diskon_aktif:
+            harga_final = harga_asli - (harga_asli * nilai_diskon / 100)
+        else:
+            harga_final = harga_asli
+
+        b['harga_final'] = int(harga_final)
+        b['diskon_aktif'] = diskon_aktif
+        b['diskon_zhavira'] = nilai_diskon 
+
+        barang.append(b)
 
     cursor.close()
     conn.close()
 
     return render_template('data_barang_zhavira.html', barang=barang)
 
+@app.route('/nonaktifkan/<kode_barang_zhavira>')
+def nonaktifkan_barang(kode_barang_zhavira):
+    if session.get('role_zhavira') not in ['admin', 'staf']:
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE tb_barang_zhavira SET status_zhavira='nonaktif' 
+        WHERE kode_barang_zhavira=%s
+    """, (kode_barang_zhavira,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return redirect(url_for('data_barang'))
+
+@app.route('/aktifkan/<kode_barang_zhavira>')
+def aktifkan_barang(kode_barang_zhavira):
+    if session.get('role_zhavira') not in ['admin', 'staf']:
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE tb_barang_zhavira SET status_zhavira='aktif' 
+        WHERE kode_barang_zhavira=%s
+    """, (kode_barang_zhavira,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return redirect(url_for('data_barang'))
+
 @app.route('/tambahbarang', methods=['GET', 'POST'])
 def tambahbarang():
-    if session.get('role_zhavira') != 'staf':
+    if session.get('role_zhavira') not in ['admin', 'staf']:
         return redirect('/')
 
     if request.method == 'POST':
         kode_barang_zhavira = request.form.get('kode_barang_zhavira')
         nama_barang_zhavira = request.form.get('nama_barang_zhavira')
-        harga_zhavira = request.form.get('harga_zhavira')
+        harga_zhavira = int(request.form.get('harga_zhavira'))
         stok_zhavira = int(request.form.get('stok_zhavira'))
-
-        if stok_zhavira <= 0:
-            status_zhavira = 'tidak tersedia'
-        else:
-            status_zhavira = 'tersedia'
 
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO tb_barang_zhavira (kode_barang_zhavira, nama_barang_zhavira, harga_zhavira, stok_zhavira, status_zhavira)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (kode_barang_zhavira, nama_barang_zhavira, harga_zhavira, stok_zhavira, status_zhavira))
+            INSERT INTO tb_barang_zhavira (kode_barang_zhavira, nama_barang_zhavira, harga_zhavira, stok_zhavira)
+            VALUES (%s, %s, %s, %s)
+        """, (kode_barang_zhavira, nama_barang_zhavira, harga_zhavira, stok_zhavira))
         
         conn.commit()
         cursor.close()
@@ -399,7 +461,7 @@ def tambahbarang():
 
 @app.route('/editbarang/<kode_barang_zhavira>', methods=['GET', 'POST'])
 def edit_barang(kode_barang_zhavira):
-    if session.get('role_zhavira') != 'staf':
+    if session.get('role_zhavira') not in ['admin', 'staf']:
         return redirect('/')
 
     conn = get_db_connection()
@@ -412,22 +474,34 @@ def edit_barang(kode_barang_zhavira):
         conn.close()
         return f"Data dengan kode_barang_zhavira {kode_barang_zhavira} tidak ditemukan."
 
+    if barang['status_zhavira'] == 'nonaktif':
+        cursor.close()
+        conn.close()
+        return redirect(url_for('data_barang'))
+
     if request.method == 'POST':
         nama_barang_zhavira = request.form.get('nama_barang_zhavira')
         harga_zhavira = request.form.get('harga_zhavira')
-        stok_zhavira = int(request.form.get('stok_zhavira'))
+        diskon_zhavira = request.form.get('diskon_zhavira')
+        tgl_mulai = request.form.get('tanggal_mulai_diskon_zhavira') or None
+        tgl_selesai = request.form.get('tanggal_selesai_diskon_zhavira') or None
+        diskon_zhavira = int(diskon_zhavira) if diskon_zhavira else 0
+        harga_zhavira = int(harga_zhavira) if harga_zhavira else 0
+        tambah_stok = request.form.get('tambah_stok_zhavira')
+        tambah_stok = int(tambah_stok) if tambah_stok and int(tambah_stok) > 0 else 0
 
-        if stok_zhavira <= 0:
-            status_zhavira = 'tidak tersedia'
-        else:
-            status_zhavira = 'tersedia'
+        stok_lama = barang['stok_zhavira']  
+        stok_baru = stok_lama + tambah_stok  
+
 
         update_query = """
             UPDATE tb_barang_zhavira
-            SET nama_barang_zhavira=%s, harga_zhavira=%s, stok_zhavira=%s, status_zhavira=%s
+            SET nama_barang_zhavira=%s, harga_zhavira=%s, stok_zhavira=%s,
+                diskon_zhavira=%s, tanggal_mulai_diskon_zhavira=%s, tanggal_selesai_diskon_zhavira=%s
             WHERE kode_barang_zhavira=%s
         """
-        cursor.execute(update_query, (nama_barang_zhavira, harga_zhavira, stok_zhavira, status_zhavira, kode_barang_zhavira))
+        cursor.execute(update_query, (nama_barang_zhavira, harga_zhavira, stok_baru,
+                                        diskon_zhavira, tgl_mulai, tgl_selesai, kode_barang_zhavira))
         conn.commit()
         cursor.close()
         conn.close()
@@ -437,118 +511,224 @@ def edit_barang(kode_barang_zhavira):
     conn.close()
     return render_template('edithapus_barang_zhavira.html', barang=barang)
 
-@app.route('/hapusbarang/<kode_barang_zhavira>')
-def hapus_barang(kode_barang_zhavira):
-    if session.get('role_zhavira') != 'staf':
-        return redirect('/')
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM tb_barang_zhavira WHERE kode_barang_zhavira = %s", (kode_barang_zhavira,))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return redirect(url_for('data_barang'))
-
 @app.route('/keuangan')
 def laporan_keuangan():
-    if session.get('role_zhavira') not in ['admin', 'kasir']:
+    if session.get('role_zhavira') not in ['admin', 'kasir', 'owner']:
         return redirect('/')
         
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    periode = request.args.get('periode') 
+    periode = request.args.get('periode', 'hari')
+    tgl_mulai = request.args.get('tgl_mulai', '')
+    tgl_selesai = request.args.get('tgl_selesai', '')
 
-    if periode == 'jam':
-        query = """
-            SELECT 
-                CONCAT(HOUR(tanggal_waktu_zhavira), ':00') as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai           
-                FROM tb_transaksi_zhavira
-            GROUP BY HOUR(tanggal_waktu_zhavira)
-        """
+    filter_tanggal = ""
+    params = []
+    if tgl_mulai and tgl_selesai:
+        filter_tanggal = "WHERE DATE(tanggal_waktu_zhavira) BETWEEN %s AND %s"
+        params = [tgl_mulai, tgl_selesai]
 
-    elif periode == 'sesi':
-        query = """
-            SELECT 
-                CASE 
-                    WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 8 AND 13 THEN 'Pagi'
-                    WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 14 AND 17 THEN 'Siang'
-                    WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 18 AND 22 THEN 'Sore'
-                END as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai            
-                FROM tb_transaksi_zhavira
-            GROUP BY perperiode
-        """
-
-    elif periode == 'hari':
-        query = """
+    if tgl_mulai and tgl_selesai:
+        query = f"""
             SELECT 
                 DATE(tanggal_waktu_zhavira) as perperiode,
                 COUNT(*) as jumlah_transaksi,
                 SUM(total_belanja_zhavira) as total_penjualan,
+                SUM(
+                    CASE 
+                        WHEN b.tanggal_mulai_diskon_zhavira IS NOT NULL
+                        AND b.tanggal_selesai_diskon_zhavira IS NOT NULL
+                        AND DATE(t.tanggal_waktu_zhavira) BETWEEN b.tanggal_mulai_diskon_zhavira 
+                                                            AND b.tanggal_selesai_diskon_zhavira
+                        THEN (b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira
+                        ELSE 0
+                    END
+                ) as total_diskon,
                 SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
-                FROM tb_transaksi_zhavira
+            FROM tb_transaksi_zhavira t
+            JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+            JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+            {filter_tanggal}
             GROUP BY DATE(tanggal_waktu_zhavira)
+            ORDER BY perperiode
         """
-
-    elif periode == 'minggu':
-        query = """
-            SELECT 
-                CONCAT('2026 - Minggu ', WEEK(tanggal_waktu_zhavira,1)) as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
-            FROM tb_transaksi_zhavira
-            GROUP BY YEAR(tanggal_waktu_zhavira), WEEK(tanggal_waktu_zhavira,1)
-        """
-
-    elif periode == 'bulan':
-        query = """
-            SELECT 
-                CASE MONTH(tanggal_waktu_zhavira)
-                    WHEN 1 THEN 'Januari'
-                    WHEN 2 THEN 'Februari'
-                    WHEN 3 THEN 'Maret'
-                    WHEN 4 THEN 'April'
-                    WHEN 5 THEN 'Mei'
-                    WHEN 6 THEN 'Juni'
-                    WHEN 7 THEN 'Juli'
-                    WHEN 8 THEN 'Agustus'
-                    WHEN 9 THEN 'September'
-                    WHEN 10 THEN 'Oktober'
-                    WHEN 11 THEN 'November'
-                    WHEN 12 THEN 'Desember'
-                END as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
-            FROM tb_transaksi_zhavira
-            GROUP BY MONTH(tanggal_waktu_zhavira)
-            ORDER BY MONTH(tanggal_waktu_zhavira)
-        """
-
     else:
-        query = """
-            SELECT 
-                YEAR(tanggal_waktu_zhavira) as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
-            FROM tb_transaksi_zhavira
-            GROUP BY YEAR(tanggal_waktu_zhavira)
-        """
+        if periode == 'jam':
+            query = f"""
+                SELECT 
+                    DATE_FORMAT(tanggal_waktu_zhavira, '%H:%i') as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM(
+                        CASE 
+                            WHEN b.tanggal_mulai_diskon_zhavira IS NOT NULL
+                            AND b.tanggal_selesai_diskon_zhavira IS NOT NULL
+                            AND DATE(t.tanggal_waktu_zhavira) BETWEEN b.tanggal_mulai_diskon_zhavira 
+                                                                AND b.tanggal_selesai_diskon_zhavira
+                            THEN (b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira
+                            ELSE 0
+                        END
+                    ) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai,
+                    CASE 
+                        WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 7 AND 22 THEN 'normal'
+                        WHEN HOUR(tanggal_waktu_zhavira) = 23 AND MINUTE(tanggal_waktu_zhavira) = 0 THEN 'normal'
+                        ELSE 'diluar'
+                    END as status_jam
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY DATE_FORMAT(tanggal_waktu_zhavira, '%H:%i')
+                ORDER BY perperiode
+            """
+        elif periode == 'sesi':
+            query = f"""
+                SELECT 
+                    CASE 
+                        WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 7 AND 13 THEN 'Pagi (07:00-13:59)'
+                        WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 14 AND 17 THEN 'Siang (14:00-17:59)'
+                        WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 18 AND 23 THEN 'Sore (18:00-23:00)'
+                        ELSE 'Luar Jam Operasional'
+                    END as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM(
+                        CASE 
+                            WHEN b.tanggal_mulai_diskon_zhavira IS NOT NULL
+                            AND b.tanggal_selesai_diskon_zhavira IS NOT NULL
+                            AND DATE(t.tanggal_waktu_zhavira) BETWEEN b.tanggal_mulai_diskon_zhavira 
+                                                                AND b.tanggal_selesai_diskon_zhavira
+                            THEN (b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira
+                            ELSE 0
+                        END
+                    ) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY perperiode
+            """
+        elif periode == 'hari':
+            query = f"""
+                SELECT 
+                    DATE(tanggal_waktu_zhavira) as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM(
+                        CASE 
+                            WHEN b.tanggal_mulai_diskon_zhavira IS NOT NULL
+                            AND b.tanggal_selesai_diskon_zhavira IS NOT NULL
+                            AND DATE(t.tanggal_waktu_zhavira) BETWEEN b.tanggal_mulai_diskon_zhavira 
+                                                                AND b.tanggal_selesai_diskon_zhavira
+                            THEN (b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira
+                            ELSE 0
+                        END
+                    ) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY DATE(tanggal_waktu_zhavira)
+                ORDER BY perperiode
+            """
+        elif periode == 'minggu':
+            query = f"""
+                SELECT 
+                    CONCAT(
+                        'Minggu ke-', 
+                        CEIL(DAY(tanggal_waktu_zhavira) / 7),
+                        ' ',
+                        CASE MONTH(tanggal_waktu_zhavira)
+                            WHEN 1 THEN 'Januari' WHEN 2 THEN 'Februari' WHEN 3 THEN 'Maret'
+                            WHEN 4 THEN 'April' WHEN 5 THEN 'Mei' WHEN 6 THEN 'Juni'
+                            WHEN 7 THEN 'Juli' WHEN 8 THEN 'Agustus' WHEN 9 THEN 'September'
+                            WHEN 10 THEN 'Oktober' WHEN 11 THEN 'November' WHEN 12 THEN 'Desember'
+                        END,
+                        ' ', YEAR(tanggal_waktu_zhavira)
+                    ) as perperiode,
+                    YEAR(tanggal_waktu_zhavira) as thn,
+                    MONTH(tanggal_waktu_zhavira) as bln,
+                    CEIL(DAY(tanggal_waktu_zhavira) / 7) as minggu_ke,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM(
+                        CASE 
+                            WHEN b.tanggal_mulai_diskon_zhavira IS NOT NULL
+                            AND b.tanggal_selesai_diskon_zhavira IS NOT NULL
+                            AND DATE(t.tanggal_waktu_zhavira) BETWEEN b.tanggal_mulai_diskon_zhavira 
+                                                                AND b.tanggal_selesai_diskon_zhavira
+                            THEN (b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira
+                            ELSE 0
+                        END
+                    ) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY thn, bln, minggu_ke
+                ORDER BY thn, bln, minggu_ke
+            """
+        elif periode == 'bulan':
+            query = f"""
+                SELECT 
+                    CASE MONTH(tanggal_waktu_zhavira)
+                        WHEN 1 THEN 'Januari' WHEN 2 THEN 'Februari' WHEN 3 THEN 'Maret'
+                        WHEN 4 THEN 'April' WHEN 5 THEN 'Mei' WHEN 6 THEN 'Juni'
+                        WHEN 7 THEN 'Juli' WHEN 8 THEN 'Agustus' WHEN 9 THEN 'September'
+                        WHEN 10 THEN 'Oktober' WHEN 11 THEN 'November' WHEN 12 THEN 'Desember'
+                    END as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM(
+                        CASE 
+                            WHEN b.tanggal_mulai_diskon_zhavira IS NOT NULL
+                            AND b.tanggal_selesai_diskon_zhavira IS NOT NULL
+                            AND DATE(t.tanggal_waktu_zhavira) BETWEEN b.tanggal_mulai_diskon_zhavira 
+                                                                AND b.tanggal_selesai_diskon_zhavira
+                            THEN (b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira
+                            ELSE 0
+                        END
+                    ) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY MONTH(tanggal_waktu_zhavira)
+                ORDER BY MONTH(tanggal_waktu_zhavira)
+            """
+        else:
+            query = f"""
+                SELECT 
+                    YEAR(tanggal_waktu_zhavira) as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM(
+                        CASE 
+                            WHEN b.tanggal_mulai_diskon_zhavira IS NOT NULL
+                            AND b.tanggal_selesai_diskon_zhavira IS NOT NULL
+                            AND DATE(t.tanggal_waktu_zhavira) BETWEEN b.tanggal_mulai_diskon_zhavira 
+                                                                AND b.tanggal_selesai_diskon_zhavira
+                            THEN (b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira
+                            ELSE 0
+                        END
+                    ) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY YEAR(tanggal_waktu_zhavira)
+            """
 
-    cursor.execute(query)
+    cursor.execute(query, params)
     data = cursor.fetchall()
-
     total_omzet = sum(d['total_penjualan'] or 0 for d in data)
-
     cursor.close()
     conn.close()
 
@@ -556,103 +736,164 @@ def laporan_keuangan():
         'laporan_keuangan_zhavira.html',
         data=data,
         total_omzet=total_omzet,
-        periode=periode
+        periode=periode,
+        tgl_mulai=tgl_mulai,
+        tgl_selesai=tgl_selesai
     )
+
 
 @app.route('/cetak_laporan_keuangan')
 def cetak_laporan_keuangan():
-    if session.get('role_zhavira') not in ['admin', 'kasir']:
+    if session.get('role_zhavira') not in ['admin', 'kasir', 'owner']:
         return redirect('/')
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    periode = request.args.get('periode') 
+    periode = request.args.get('periode', 'hari')
+    tgl_mulai = request.args.get('tgl_mulai', '')
+    tgl_selesai = request.args.get('tgl_selesai', '')
 
-    if periode == 'jam':
-        query = """
-            SELECT 
-                CONCAT(HOUR(tanggal_waktu_zhavira), ':00') as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai           
-                FROM tb_transaksi_zhavira
-            GROUP BY HOUR(tanggal_waktu_zhavira)
-        """
+    filter_tanggal = ""
+    params = []
+    if tgl_mulai and tgl_selesai:
+        filter_tanggal = "WHERE DATE(tanggal_waktu_zhavira) BETWEEN %s AND %s"
+        params = [tgl_mulai, tgl_selesai]
 
-    elif periode == 'sesi':
-        query = """
-            SELECT 
-                CASE 
-                    WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 8 AND 13 THEN 'Pagi'
-                    WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 14 AND 17 THEN 'Siang'
-                    WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 18 AND 22 THEN 'Sore'
-                END as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai            
-                FROM tb_transaksi_zhavira
-            GROUP BY perperiode
-        """
-
-    elif periode == 'hari':
-        query = """
+    if tgl_mulai and tgl_selesai:
+        query = f"""
             SELECT 
                 DATE(tanggal_waktu_zhavira) as perperiode,
                 COUNT(*) as jumlah_transaksi,
                 SUM(total_belanja_zhavira) as total_penjualan,
+                SUM((b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira) as total_diskon,
                 SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
-                FROM tb_transaksi_zhavira
+            FROM tb_transaksi_zhavira t
+            JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+            JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+            {filter_tanggal}
             GROUP BY DATE(tanggal_waktu_zhavira)
+            ORDER BY perperiode
         """
-
-    elif periode == 'minggu':
-        query = """
-            SELECT 
-                CONCAT('2026 - Minggu ', WEEK(tanggal_waktu_zhavira,1)) as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
-            FROM tb_transaksi_zhavira
-            GROUP BY YEAR(tanggal_waktu_zhavira), WEEK(tanggal_waktu_zhavira,1)
-        """
-
-    elif periode == 'bulan':
-        query = """
-            SELECT 
-                CASE MONTH(tanggal_waktu_zhavira)
-                    WHEN 1 THEN 'Januari'
-                    WHEN 2 THEN 'Februari'
-                    WHEN 3 THEN 'Maret'
-                    WHEN 4 THEN 'April'
-                    WHEN 5 THEN 'Mei'
-                    WHEN 6 THEN 'Juni'
-                    WHEN 7 THEN 'Juli'
-                    WHEN 8 THEN 'Agustus'
-                    WHEN 9 THEN 'September'
-                    WHEN 10 THEN 'Oktober'
-                    WHEN 11 THEN 'November'
-                    WHEN 12 THEN 'Desember'
-                END as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
-            FROM tb_transaksi_zhavira
-            GROUP BY MONTH(tanggal_waktu_zhavira)
-            ORDER BY MONTH(tanggal_waktu_zhavira)
-        """
-
     else:
-        query = """
-            SELECT 
-                YEAR(tanggal_waktu_zhavira) as perperiode,
-                COUNT(*) as jumlah_transaksi,
-                SUM(total_belanja_zhavira) as total_penjualan,
-                SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
-            FROM tb_transaksi_zhavira
-            GROUP BY YEAR(tanggal_waktu_zhavira)
-        """
+        if periode == 'jam':
+            query = f"""
+                SELECT 
+                    DATE_FORMAT(tanggal_waktu_zhavira, '%H:%i') as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM((b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai,
+                    CASE 
+                        WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 7 AND 22 THEN 'normal'
+                        WHEN HOUR(tanggal_waktu_zhavira) = 23 AND MINUTE(tanggal_waktu_zhavira) = 0 THEN 'normal'
+                        ELSE 'diluar'
+                    END as status_jam
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY DATE_FORMAT(tanggal_waktu_zhavira, '%H:%i')
+                ORDER BY perperiode
+            """
+        elif periode == 'sesi':
+            query = f"""
+                SELECT 
+                    CASE 
+                        WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 7 AND 13 THEN 'Pagi (07:00-13:59)'
+                        WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 14 AND 17 THEN 'Siang (14:00-17:59)'
+                        WHEN HOUR(tanggal_waktu_zhavira) BETWEEN 18 AND 23 THEN 'Sore (18:00-23:00)'
+                        ELSE 'Luar Jam Operasional'
+                    END as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM((b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY perperiode
+            """
+        elif periode == 'hari':
+            query = f"""
+                SELECT 
+                    DATE(tanggal_waktu_zhavira) as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM((b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY DATE(tanggal_waktu_zhavira)
+                ORDER BY perperiode
+            """
+        elif periode == 'minggu':
+            query = f"""
+                SELECT 
+                    CONCAT(
+                        'Minggu ke-', 
+                        CEIL(DAY(tanggal_waktu_zhavira) / 7),
+                        ' ',
+                        CASE MONTH(tanggal_waktu_zhavira)
+                            WHEN 1 THEN 'Januari' WHEN 2 THEN 'Februari' WHEN 3 THEN 'Maret'
+                            WHEN 4 THEN 'April' WHEN 5 THEN 'Mei' WHEN 6 THEN 'Juni'
+                            WHEN 7 THEN 'Juli' WHEN 8 THEN 'Agustus' WHEN 9 THEN 'September'
+                            WHEN 10 THEN 'Oktober' WHEN 11 THEN 'November' WHEN 12 THEN 'Desember'
+                        END,
+                        ' ', YEAR(tanggal_waktu_zhavira)
+                    ) as perperiode,
+                    YEAR(tanggal_waktu_zhavira) as thn,
+                    MONTH(tanggal_waktu_zhavira) as bln,
+                    CEIL(DAY(tanggal_waktu_zhavira) / 7) as minggu_ke,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM((b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY thn, bln, minggu_ke
+                ORDER BY thn, bln, minggu_ke
+            """
+        elif periode == 'bulan':
+            query = f"""
+                SELECT 
+                    CASE MONTH(tanggal_waktu_zhavira)
+                        WHEN 1 THEN 'Januari' WHEN 2 THEN 'Februari' WHEN 3 THEN 'Maret'
+                        WHEN 4 THEN 'April' WHEN 5 THEN 'Mei' WHEN 6 THEN 'Juni'
+                        WHEN 7 THEN 'Juli' WHEN 8 THEN 'Agustus' WHEN 9 THEN 'September'
+                        WHEN 10 THEN 'Oktober' WHEN 11 THEN 'November' WHEN 12 THEN 'Desember'
+                    END as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM((b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY MONTH(tanggal_waktu_zhavira)
+                ORDER BY MONTH(tanggal_waktu_zhavira)
+            """
+        else:
+            query = f"""
+                SELECT 
+                    YEAR(tanggal_waktu_zhavira) as perperiode,
+                    COUNT(*) as jumlah_transaksi,
+                    SUM(total_belanja_zhavira) as total_penjualan,
+                    SUM((b.harga_zhavira * b.diskon_zhavira / 100) * d.jumlah_zhavira) as total_diskon,
+                    SUM(CASE WHEN metode_bayar_zhavira='tunai' THEN total_belanja_zhavira ELSE 0 END) as tunai
+                FROM tb_transaksi_zhavira t
+                JOIN tb_detail_transaksi_zhavira d ON t.id_transaksi_zhavira = d.id_transaksi_zhavira
+                JOIN tb_barang_zhavira b ON d.kode_barang_zhavira = b.kode_barang_zhavira
+                {filter_tanggal}
+                GROUP BY YEAR(tanggal_waktu_zhavira)
+            """
 
-    cursor.execute(query)
+    cursor.execute(query, params)
     data = cursor.fetchall()
     total_omzet = sum(d['total_penjualan'] or 0 for d in data)
     cursor.close()
@@ -660,37 +901,47 @@ def cetak_laporan_keuangan():
 
     pdf = FPDF(orientation='P', unit='mm', format='A4')
     pdf.add_page()
-    
+
     pdf.set_font("Arial", size=14, style='B')
-    pdf.cell(0, 10, f"Laporan Keuangan - Periode: {periode.capitalize()}", ln=True, align='C')
+    judul_periode = periode.capitalize()
+    if tgl_mulai and tgl_selesai:
+        judul_periode += f" ({tgl_mulai} s/d {tgl_selesai})"
+    pdf.cell(0, 10, f"Laporan Keuangan - Periode: {judul_periode}", ln=True, align='C')
     pdf.ln(5)
 
+    w_per = 35
+    w_jml = 30
+    w_pen = 42
+    w_dis = 41
+    w_tun = 42
+
     pdf.set_font("Arial", size=10, style='B')
-    pdf.set_fill_color(227, 6, 19) 
+    pdf.set_fill_color(227, 6, 19)
     pdf.set_text_color(255, 255, 255)
-    
-    pdf.cell(40, 10, "Periode", border=1, align='C', fill=True)
-    pdf.cell(40, 10, "Jml Transaksi", border=1, align='C', fill=True)
-    pdf.cell(55, 10, "Total Penjualan", border=1, align='C', fill=True)
-    pdf.cell(55, 10, "Tunai", border=1, align='C', fill=True)
+    pdf.cell(w_per, 10, "Periode", border=1, align='C', fill=True)
+    pdf.cell(w_jml, 10, "Jml Transaksi", border=1, align='C', fill=True)
+    pdf.cell(w_pen, 10, "Total Penjualan", border=1, align='C', fill=True)
+    pdf.cell(w_dis, 10, "Diskon", border=1, align='C', fill=True)
+    pdf.cell(w_tun, 10, "Tunai", border=1, align='C', fill=True)
     pdf.ln()
 
     pdf.set_text_color(0, 0, 0)
     pdf.set_font("Arial", size=10)
     for d in data:
-        pdf.cell(40, 9, str(d['perperiode']), border=1, align='C')
-        pdf.cell(40, 9, str(d['jumlah_transaksi']), border=1, align='C')
-        pdf.cell(55, 9, f"Rp {int(d['total_penjualan'] or 0):,.0f}", border=1, align='R')
-        pdf.cell(55, 9, f"Rp {int(d['tunai'] or 0):,.0f}", border=1, align='R')
+        pdf.cell(w_per, 9, str(d['perperiode']), border=1, align='C')
+        pdf.cell(w_jml, 9, str(d['jumlah_transaksi']), border=1, align='C')
+        pdf.cell(w_pen, 9, f"Rp {int(d['total_penjualan'] or 0):,.0f}", border=1, align='R')
+        pdf.cell(w_dis, 9, f"Rp {int(d['total_diskon'] or 0):,.0f}", border=1, align='R')
+        pdf.cell(w_tun, 9, f"Rp {int(d['tunai'] or 0):,.0f}", border=1, align='R')
         pdf.ln()
 
     pdf.set_font("Arial", size=10, style='B')
-    pdf.cell(80, 10, "TOTAL OMZET", border=1, align='C')
-    pdf.cell(110, 10, f"Rp {int(total_omzet):,.0f}", border=1, align='R', ln=True)
+    pdf.cell(w_per + w_jml, 10, "TOTAL OMZET", border=1, align='C')
+    pdf.cell(w_pen + w_dis + w_tun, 10, f"Rp {int(total_omzet):,.0f}", border=1, align='R', ln=True)
 
     response = make_response(bytes(pdf.output(dest='S')))
     response.headers.set('Content-Type', 'application/pdf')
-    response.headers.set('Content-Disposition', f'attachment; filename=laporan_{periode}.pdf')
+    response.headers.set('Content-Disposition', f'attachment; filename="laporan_{periode}.pdf"')
     return response
 
 @app.route('/kasir', methods=['GET', 'POST'])
@@ -721,13 +972,35 @@ def transaksi_kasir():
             OR nama_barang_zhavira LIKE %s
         """, (keyword_zhavira, f"%{keyword_zhavira}%"))
 
-        data = cursor.fetchone()
+        data = cursor.fetchone()  
 
         if data:
+            harga_asli = data['harga_zhavira']
+            nilai_diskon = data.get('diskon_zhavira') or 0
+            tgl_mulai = data.get('tanggal_mulai_diskon_zhavira')
+            tgl_selesai = data.get('tanggal_selesai_diskon_zhavira')
+
+            today = datetime.now().date()
+            diskon_aktif = False
+
+            if tgl_mulai and tgl_selesai:
+                if isinstance(tgl_mulai, str):
+                    tgl_mulai = datetime.strptime(tgl_mulai, "%Y-%m-%d").date()
+                if isinstance(tgl_selesai, str):
+                    tgl_selesai = datetime.strptime(tgl_selesai, "%Y-%m-%d").date()
+
+                if tgl_mulai <= today <= tgl_selesai:
+                    diskon_aktif = True
+
+            harga_final = harga_asli - (harga_asli * nilai_diskon / 100) if diskon_aktif else harga_asli
+
             preview_zhavira = {
                 'kode': data['kode_barang_zhavira'],
                 'nama': data['nama_barang_zhavira'],
-                'harga': data['harga_zhavira']
+                'harga': int(harga_final),
+                'harga_asli': harga_asli,
+                'diskon': nilai_diskon, 
+                'diskon_aktif': diskon_aktif
             }
         else:
             error = "Barang tidak ditemukan!"
@@ -735,32 +1008,76 @@ def transaksi_kasir():
     if request.method == 'POST' and 'tambah' in request.form:
         kode_barang_zhavira = request.form['kode_barang_zhavira']
         nama_barang_zhavira = request.form['nama_barang_zhavira']
-        harga_zhavira = int(request.form['harga_zhavira'])
         jumlah_zhavira = int(request.form['jumlah_zhavira'])
 
-        cursor.execute("SELECT stok_zhavira FROM tb_barang_zhavira WHERE kode_barang_zhavira = %s", (kode_barang_zhavira,))
+        cursor.execute("""
+            SELECT stok_zhavira, harga_zhavira,
+               diskon_zhavira,
+               tanggal_mulai_diskon_zhavira,
+               tanggal_selesai_diskon_zhavira
+            FROM tb_barang_zhavira
+            WHERE kode_barang_zhavira = %s
+        """, (kode_barang_zhavira,))
+
         barang_db = cursor.fetchone()
-        
-        jumlah_di_keranjang = session['keranjang_zhavira'].get(kode_barang_zhavira, {}).get('jumlah_zhavira', 0)
-        total_permintaan = jumlah_di_keranjang + jumlah_zhavira
 
-        if barang_db and total_permintaan > barang_db['stok_zhavira']:
-            error = f"Stok tidak mencukupi! Sisa stok: {barang_db['stok_zhavira']}"
-        elif kode_barang_zhavira in session['keranjang_zhavira']:
-                session['keranjang_zhavira'][kode_barang_zhavira]['jumlah_zhavira'] += jumlah_zhavira
+        if not barang_db:
+            error = "Barang tidak ditemukan!"
+
+        elif barang_db['stok_zhavira'] <= 0:
+            error = "Stok habis!"
+
         else:
-            session['keranjang_zhavira'][kode_barang_zhavira] = {
-                'nama_barang_zhavira': nama_barang_zhavira,
-                'harga_zhavira': harga_zhavira,
-                'jumlah_zhavira': jumlah_zhavira
-            }
+            stok = barang_db['stok_zhavira']
+            item_keranjang = session['keranjang_zhavira'].get(kode_barang_zhavira, {})
+            jumlah_lama = item_keranjang.get('jumlah_zhavira', 0)
+            total_permintaan = jumlah_lama + jumlah_zhavira
 
-            session['keranjang_zhavira'][kode_barang_zhavira]['subtotal_zhavira'] = \
-                session['keranjang_zhavira'][kode_barang_zhavira]['jumlah_zhavira'] * harga_zhavira
+            if total_permintaan > stok:
+                error = f"Stok tidak mencukupi! Sisa stok: {stok}"
+            else:
+                harga_asli = barang_db['harga_zhavira']
+                diskon = barang_db.get('diskon_zhavira') or 0
+                tgl_mulai = barang_db.get('tanggal_mulai_diskon_zhavira')
+                tgl_selesai = barang_db.get('tanggal_selesai_diskon_zhavira')
+                
+                today = datetime.now().date()
+                diskon_aktif = False
 
-            session.modified = True
-            preview_zhavira = None
-        jumlah_zhavira = None
+                if tgl_mulai and tgl_selesai:
+                    if not isinstance(tgl_mulai, date):
+                        tgl_mulai = datetime.strptime(str(tgl_mulai), "%Y-%m-%d").date()
+                    
+                    if not isinstance(tgl_selesai, date):
+                        tgl_selesai = datetime.strptime(str(tgl_selesai), "%Y-%m-%d").date()
+
+                    if tgl_mulai <= today <= tgl_selesai:
+                        diskon_aktif = True
+
+                if diskon_aktif:
+                    harga_final = int(harga_asli - (harga_asli * diskon / 100))
+                else:
+                    harga_final = int(harga_asli)
+
+                if kode_barang_zhavira in session['keranjang_zhavira']:
+                    session['keranjang_zhavira'][kode_barang_zhavira]['jumlah_zhavira'] += jumlah_zhavira
+                else:
+                    urutan_baru = len(session['keranjang_zhavira']) + 1
+                    session['keranjang_zhavira'][kode_barang_zhavira] = {
+                        'nama_barang_zhavira': nama_barang_zhavira,
+                        'harga_zhavira': harga_final,
+                        'harga_asli': harga_asli,
+                        'jumlah_zhavira': jumlah_zhavira,
+                        'urutan': urutan_baru  
+                    }
+
+                item = session['keranjang_zhavira'][kode_barang_zhavira]
+                item['subtotal_zhavira'] = item['jumlah_zhavira'] * item['harga_zhavira']
+            
+                session.modified = True
+                return redirect(url_for('transaksi_kasir'))
+                preview_zhavira = None
+                jumlah_zhavira = None
 
     total_belanja_zhavira = sum(
         item['subtotal_zhavira']
@@ -808,11 +1125,16 @@ def transaksi_kasir():
                 kembalian_zhavira
             ))
 
-            for kode_barang_zhavira, item in session['keranjang_zhavira'].items():
+            items_terurut = sorted(
+                session['keranjang_zhavira'].items(),
+                key=lambda x: x[1].get('urutan', 0)
+            )
+
+            for kode_barang_zhavira, item in items_terurut:
                 cursor.execute("""
                     INSERT INTO tb_detail_transaksi_zhavira
                     (id_transaksi_zhavira, kode_barang_zhavira,
-                     harga_zhavira, jumlah_zhavira, subtotal_zhavira)
+                    harga_zhavira, jumlah_zhavira, subtotal_zhavira)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (
                     id_transaksi,
@@ -877,11 +1199,12 @@ def cetak_struk(id_transaksi):
     transaksi = cursor.fetchone()
 
     cursor.execute("""
-        SELECT d.*, b.nama_barang_zhavira
+        SELECT d.*, b.nama_barang_zhavira, b.harga_zhavira as harga_normal
         FROM tb_detail_transaksi_zhavira d
         JOIN tb_barang_zhavira b
         ON d.kode_barang_zhavira = b.kode_barang_zhavira
         WHERE d.id_transaksi_zhavira = %s
+        ORDER BY d.id_detail_zhavira ASC
     """, (id_transaksi,))
     detail = cursor.fetchall()
 
@@ -897,14 +1220,26 @@ def cetak_struk(id_transaksi):
     cursor.close()
     conn.close()
 
-    tinggi_dasar = 200
-    tinggi_item = len(detail) * 8
-    tinggi_kertas = tinggi_dasar + tinggi_item
+    
+    tinggi_header = 45 
+    
+    tinggi_footer = 40 
+    
+    tinggi_barang = 0
+    for item in detail:
+        
+        tinggi_barang += 8 
+        
+        if int(item['harga_zhavira']) < int(item['harga_normal']):
+            tinggi_barang += 3
+
+    tinggi_kertas = tinggi_header + tinggi_barang + tinggi_footer
 
     pdf = FPDF(orientation='P', unit='mm', format=(58, tinggi_kertas))
+    
     pdf.set_auto_page_break(auto=False, margin=0) 
     pdf.add_page()
-
+    
     pdf.set_left_margin(4)
     pdf.set_right_margin(4) 
 
@@ -926,39 +1261,94 @@ def cetak_struk(id_transaksi):
 
     total_item = 0
 
+    total_hemat = 0
+
+    CHAR_WIDTH = 32 
+
     for item in detail:
         nama = item['nama_barang_zhavira']
         qty = item['jumlah_zhavira']
-        harga = int(item['harga_zhavira'])
+        harga_jual = int(item['harga_zhavira'])
+        harga_normal = int(item['harga_normal'])
         subtotal = int(item['subtotal_zhavira'])
 
-        pdf.multi_cell(0, 3, nama) 
+        pdf.multi_cell(0, 3, nama)
+        pdf.ln(0)
 
-        kiri = f"{qty}x{harga}"
-        kanan = f"{subtotal}"
+        ada_diskon = harga_jual < harga_normal
 
-        pdf.cell(28, 3, kiri)
-        pdf.cell(0, 3, kanan, ln=True, align='R')
+        if ada_diskon:
+            subtotal_normal = harga_normal * qty
+            kiri = f"{qty} x {harga_normal:,.0f}"
+            kanan = f"{subtotal_normal:,.0f}"
+            spasi = CHAR_WIDTH - len(kiri) - len(kanan)
+            if spasi < 1: spasi = 1
+            pdf.cell(0, 3, kiri + (" " * spasi) + kanan, ln=True)
 
-        total_item += qty
+            potongan = (harga_normal - harga_jual) * qty
+            total_hemat += potongan
+            label_disc = f"Disc {int(round((harga_normal - harga_jual) / harga_normal * 100))}%"
+            kanan_disc = f"-{potongan:,.0f}"
+            spasi = CHAR_WIDTH - len(label_disc) - len(kanan_disc)
+            if spasi < 1: spasi = 1
+            pdf.set_font("Courier", 'I', size=7)
+            pdf.cell(0, 3, label_disc + (" " * spasi) + kanan_disc, ln=True)
+            pdf.set_font("Courier", size=7)
+
+            kanan_final = f"{subtotal:,.0f}"
+            spasi = CHAR_WIDTH - len(kanan_final)
+            if spasi < 1: spasi = 1
+            pdf.cell(0, 3, (" " * spasi) + kanan_final, ln=True)
+
+        else:
+            kiri = f"{qty} x {harga_jual:,.0f}"
+            kanan = f"{subtotal:,.0f}"
+            spasi = CHAR_WIDTH - len(kiri) - len(kanan)
+            if spasi < 1: spasi = 1
+            pdf.cell(0, 3, kiri + (" " * spasi) + kanan, ln=True)
+
+    pdf.ln(1)
+    total_item += qty
+
 
     pdf.cell(0, 3, "-"*32, ln=True)
 
-    def row(label, value):
-        pdf.cell(28, 3, label)
-        pdf.cell(0, 3, str(value), ln=True, align='R')
+    def row(label, value, bold=False):
+        val_str = str(value)
+        spasi = CHAR_WIDTH - len(label) - len(val_str)
+        if spasi < 1:
+            spasi = 1
+        baris = label + (" " * spasi) + val_str
+        if bold:
+            pdf.set_font("Courier", 'B', size=7)
+        pdf.cell(0, 3, baris, ln=True)
+        if bold:
+            pdf.set_font("Courier", size=7)
+
+    total_sebelum_diskon = 0
+    for item in detail:
+        harga_normal = int(item['harga_normal'])
+        qty = item['jumlah_zhavira']
+        total_sebelum_diskon += harga_normal * qty
 
     row("Item", total_item)
-    row("Total", transaksi['total_belanja_zhavira'])
-    row("Tunai", transaksi['uang_bayar_zhavira'])
-    row("Kembali", transaksi['kembalian_zhavira'])
+    row("Total", f"{total_sebelum_diskon:,.0f}")
+
+    if total_hemat > 0:
+        row("Hemat", f"-{total_hemat:,.0f}", bold=True)
+        row("Anda Bayar", f"{transaksi['total_belanja_zhavira']:,.0f}")
+    else:
+        row("Anda Bayar", f"{transaksi['total_belanja_zhavira']:,.0f}")
+
+    row("Tunai", f"{transaksi['uang_bayar_zhavira']:,.0f}")
+    row("Kembali", f"{transaksi['kembalian_zhavira']:,.0f}")
 
     pdf.cell(0, 3, "-"*32, ln=True)
     pdf.cell(0, 4, "TERIMA KASIH", ln=True, align='C')
 
     response = make_response(bytes(pdf.output(dest='S')))
     response.headers.set('Content-Type', 'application/pdf')
-    response.headers.set('Content-Disposition', 'attachment', filename='struk.pdf') 
+    response.headers.set('Content-Disposition', 'attachment; filename="struk.pdf"') 
 
     return response
 
